@@ -14,7 +14,7 @@ npm run build && npm start # compile to dist/, run node dist/index.js
 
 ## Environment
 
-- **`DATABASE_URL`** — required (PostgreSQL). With Docker Compose from the repo, Postgres is on host **5961**; use **`backend/.env.example`** as a template for local `npm run dev`.
+- **`DATABASE_URL`** — required (PostgreSQL). With Docker Compose from the repo, Postgres is on host **5961**; use **`postgresql://postgres:postgres@localhost:5961/expenses`** in **`backend/.env`** for local `npm run dev`.
 
 **Auth:** Users are created via **`POST /api/auth/signup`** (or the `/account` UI). Passwords are bcrypt-hashed in the database. No admin env vars.
 

@@ -25,10 +25,10 @@ Then **`SELECT username, length("passwordHash") FROM "User";`** in Postgres — 
 
 ## Environment
 
-**[`.env.example`](../.env.example)** at the repo root is optional documentation only; the **`api`** service does **not** require a root `.env` file. **`DATABASE_URL`** for Docker is set in [`docker-compose.yml`](../docker-compose.yml).
+The **`api`** service does **not** require a root `.env` file. **`DATABASE_URL`** for Docker is set in [`docker-compose.yml`](../docker-compose.yml).
 
 - **`DATABASE_URL` (Docker Compose):** On the **`api`** service: `postgresql://postgres:postgres@db:5432/expenses`. Always use **`db:5432`** here — that is the **container** port. The host maps Postgres to **`5961`** (`5961:5432`); do **not** put `5961` or `5433` in `DATABASE_URL` for the API container.
-- **`DATABASE_URL` (API on your machine):** If you run **`npm run dev`** in **`backend/`** with Postgres from Compose on the host, use **`postgresql://postgres:postgres@localhost:5961/expenses`** in **`backend/.env`** (see **`backend/.env.example`**).
+- **`DATABASE_URL` (API on your machine):** If you run **`npm run dev`** in **`backend/`** with Postgres from Compose on the host, use **`postgresql://postgres:postgres@localhost:5961/expenses`** in **`backend/.env`**.
 - **Frontend build:** `VITE_API_URL` — **Recommended: leave unset** so the browser calls `/api/...` on the same host as the SPA (nginx proxies to Node). If you set it, use **origin only** (`https://budget.example.com`) or origin + `/api` — the client strips a duplicate `/api` if both base and path include it.
 
 ## Docker Compose (production / public release)
@@ -52,7 +52,7 @@ Open **http://localhost:8081/account**, **Sign up** for the first user, then use
 ## Local development (hot reload)
 
 1. **`docker compose up db`** (or full stack) so Postgres listens on **`localhost:5961`**.
-2. **`cd backend`**: copy **`backend/.env.example`** → **`backend/.env`**, then `npm install`, `npx prisma migrate dev`, `npm run dev`.
+2. **`cd backend`**: create a **`backend/.env`** with `DATABASE_URL="postgresql://postgres:postgres@localhost:5961/expenses"`, then `npm install`, `npx prisma migrate dev`, `npm run dev`.
 3. **`cd frontend`**: `npm install && npm run dev` — Vite proxies `/api` to the backend.
 
 ## Production: 502 / 404 on `/api/auth/*`
