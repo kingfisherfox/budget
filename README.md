@@ -1,6 +1,8 @@
-# Expense Tracker
+# Budget
 
-A modern, mobile-first expense tracking application designed for speed, simplicity, and clear visibility into your spending habits. Built with React, Node.js, Express, and PostgreSQL.
+**Budget** is a lightweight spend tracker built for ease of use — mobile-first, fast logging, budgets, and recurring/common spends. Built with React, Node.js, Express, and PostgreSQL.
+
+On phones, open the site in the browser and use **Add to Home Screen** / **Install app**; the app name, icon, and standalone display are configured via `frontend/index.html` and `frontend/public/manifest.webmanifest`. Replace `frontend/public/img/icon.png` with your own 512×512 (or larger square) PNG for the home-screen icon.
 
 ## Features
 

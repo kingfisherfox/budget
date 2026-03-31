@@ -1,5 +1,12 @@
 # UI routes and API usage
 
+## Branding and installable web app
+
+- **Product name:** Budget — lightweight spend tracker (ease of use).
+- **Static assets:** `frontend/public/img/icon.png` — favicon, `apple-touch-icon`, and PWA manifest icons. Replace this file with the final app icon (512×512 PNG recommended).
+- **Metadata:** `frontend/index.html` sets title, description, theme color, and Apple / mobile web-app meta tags for “Add to Home Screen”.
+- **Manifest:** `frontend/public/manifest.webmanifest` — `standalone` display, `start_url` `/`, references `/img/icon.png`. Served at `/manifest.webmanifest` after build.
+
 Shared **month** state (URL query `?month=YYYY-MM` or React context synced with URL) for Dashboard and Expenses.
 
 | Route | Page | API calls |
