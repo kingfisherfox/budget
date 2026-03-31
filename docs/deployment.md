@@ -2,7 +2,7 @@
 
 ## Compose files and git
 
-- **[`docker-compose.yml`](../docker-compose.yml)** and **[`docker-compose.dev.yml`](../docker-compose.dev.yml)** are **tracked** in git so installs and contributors share the same stacks.
+- **[`docker-compose.yml`](../docker-compose.yml)** is **tracked** in git so installs and contributors share the same stacks.
 - **`docker-compose.override.yml`** is **gitignored**. If you need machine-only ports or env, add that file next to `docker-compose.yml`; Compose loads it automatically when present ([Docker Compose merge](https://docs.docker.com/compose/how-tos/multiple-compose-files/)).
 
 ## Authentication
@@ -14,7 +14,7 @@
 
 ## Environment
 
-Copy **[`.env.example`](../.env.example)** to **`.env`** in the project root (or set the same variables in your host / Unraid template). Docker Compose reads `.env` for **`${VAR}` substitution** in `docker-compose.yml` (e.g. **`BUDGET_ADMIN_*`** only in the default setup).
+**[`.env.example`](../.env.example)** is **committed** to the repo and is included in a normal **`git clone`**. Copy it to **`.env`** in the project root (or set the same variables in your host / Unraid template). Docker Compose reads `.env` for **`${VAR}` substitution** in `docker-compose.yml` (e.g. **`BUDGET_ADMIN_*`** only in the default setup). If the file is missing after clone, run **`git ls-files .env.example`** — if empty, run **`git add -f .env.example`** once (a global ignore rule may have blocked it) and push again.
 
 - **`DATABASE_URL` (Docker Compose):** Set **inside [`docker-compose.yml`](../docker-compose.yml)** on the **`api`** service (`postgresql://postgres:postgres@db:5432/expenses`). The hostname **`db`** is the Compose service name on the internal network. Root **`.env` does not need `DATABASE_URL`** for the stack; it is **not** auto-injected into containers unless you add `env_file` or `environment: ${DATABASE_URL}`.
 - **`DATABASE_URL` (API on your machine):** If you run the backend with **`npm run dev`** on the host while Postgres runs in Docker with port **5432** published, put **`DATABASE_URL=postgresql://postgres:postgres@localhost:5432/expenses`** in **`backend/.env`** (see **`backend/.env.example`**).
@@ -45,17 +45,16 @@ After dependency changes in `package.json`, run **`docker compose up --build`** 
 
 ## Docker Compose (development with hot reload)
 
-Use the **standalone** **[`docker-compose.dev.yml`](../docker-compose.dev.yml)** — do **not** merge it with `docker-compose.yml` (Compose would merge `ports` incorrectly).
+From repo root:
 
 ```bash
-docker compose -f docker-compose.dev.yml up --build
+docker compose up --build
 ```
 
 - **`web`:** Vite dev server; host **`8081` → `8080`**. **`API_URL=http://api:4000`** for the Vite proxy.
-- **`api`:** Bind-mount of `./backend`, **`npm run dev`** after `migrate deploy`.
-- **`db`:** Uses volume **`pgdata_dev`** (separate from production **`pgdata`** if you run both stacks on one machine).
+- **`api`:** **`npm run dev`** after `migrate deploy`.
 
-After changing **backend or frontend** `package.json`, the start script runs **`npm install`**; you can also rebuild images. If the API container crashes, check `docker compose -f docker-compose.dev.yml logs api`.
+After changing **backend or frontend** `package.json`, the start script runs **`npm install`**; you can also rebuild images.
 
 **Tunnel use case:** Point the tunnel at **`server:8081` only**. Do not tunnel port 4000 unless you intentionally want the API public.
 

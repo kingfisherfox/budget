@@ -6,7 +6,7 @@ A simple mobile-friendly app to log spending, set category budgets, track recurr
 
 **Requirements:** [Docker](https://docs.docker.com/get-docker/) and Docker Compose.
 
-1. Copy **[`.env.example`](.env.example)** to **`.env`** in this folder and set a **password** (and username if you like). See `.env.example` for the variable names.
+1. Copy **[`.env.example`](.env.example)** (tracked in git at the repo root) to **`.env`** in this folder and set a **password** (and username if you like). See `.env.example` for the variable names.
 2. Start the stack:
 
 ```bash
@@ -20,7 +20,7 @@ If you change dependencies, run `docker compose up --build` once.
 
 To stop: `Ctrl+C` or `docker compose down`.
 
-**Developers (hot reload):** `docker compose -f docker-compose.dev.yml up --build` — see [`docs/deployment.md`](docs/deployment.md).
+**Developers (hot reload):** `docker compose up --build` — see [`docs/deployment.md`](docs/deployment.md).
 
 ---
 
