@@ -14,24 +14,25 @@ const loginSchema = z.object({
 
 export const authRouter = Router();
 
-function cookieOpts(): CookieOptions {
-  const secure = process.env.NODE_ENV === "production";
+function cookieOpts(req: Request): CookieOptions {
+  // Use Express's req.secure which respects "trust proxy"
+  // If accessing directly over HTTP on a LAN, this allows the cookie to be set.
   return {
     httpOnly: true,
-    secure,
+    secure: req.secure,
     sameSite: "lax",
     path: "/",
     maxAge: SESSION_DAYS * 24 * 60 * 60 * 1000,
   };
 }
 
-async function createSession(userId: string, res: Response): Promise<void> {
+async function createSession(userId: string, req: Request, res: Response): Promise<void> {
   const token = randomBytes(32).toString("hex");
   const expiresAt = new Date(Date.now() + SESSION_DAYS * 24 * 60 * 60 * 1000);
   await prisma.session.create({
     data: { userId, token, expiresAt },
   });
-  res.cookie(SESSION_COOKIE, token, cookieOpts());
+  res.cookie(SESSION_COOKIE, token, cookieOpts(req));
 }
 
 authRouter.get("/me", async (req: Request, res: Response, next) => {
@@ -72,7 +73,7 @@ authRouter.post("/login", async (req, res, next) => {
     if (!user || !(await bcrypt.compare(parsed.data.password, user.passwordHash))) {
       throw new HttpError(401, "Invalid username or password");
     }
-    await createSession(user.id, res);
+    await createSession(user.id, req, res);
     res.json({ user: { id: user.id, username: user.username } });
   } catch (e) {
     next(e);
