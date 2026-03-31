@@ -6,22 +6,23 @@ A simple mobile-friendly app to log spending, set category budgets, track recurr
 
 **Requirements:** [Docker](https://docs.docker.com/get-docker/) and Docker Compose.
 
-1. Copy **[`.env.example`](.env.example)** (tracked in git at the repo root) to **`.env`** in this folder and set a **password** (and username if you like). See `.env.example` for the variable names.
-2. Start the stack:
+1. Clone the repo and from the project root run:
 
 ```bash
-docker compose up
+docker compose up --build
 ```
 
-3. Open **http://localhost:8081** in your browser.
-4. Sign in at **`/account`** using the **username and password** you put in `.env`.
+2. Open **http://localhost:8081/account**.
+3. Use **Sign up** to create the first user (username + password, 8+ characters). Then **Sign in** on later visits.
+
+Postgres is exposed on the host at **port 5961** (`localhost:5961` → container `5432`). The API always connects to the database at **`db:5432`** inside Docker — do not change that in `DATABASE_URL` unless you know what you are doing.
 
 If you change dependencies, run `docker compose up --build` once.
 
 To stop: `Ctrl+C` or `docker compose down`.
 
-**Developers (hot reload):** `docker compose up --build` — see [`docs/deployment.md`](docs/deployment.md).
-
 ---
 
-**More help:** configuration, production hosting, API details, and database notes are in **[`docs/`](docs/README.md)** (start with [`docs/deployment.md`](docs/deployment.md)).
+**Security:** This app does not use **axios** (see [`docs/security.md`](docs/security.md)). Dependency trees pin any transitive **axios** to **1.14.0** via **`package.json` `overrides`**.
+
+**More help:** [`docs/deployment.md`](docs/deployment.md) (Docker, database URL, troubleshooting), [`docs/api.md`](docs/api.md), [`docs/README.md`](docs/README.md).

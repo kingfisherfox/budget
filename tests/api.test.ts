@@ -2,7 +2,6 @@ import { afterAll, beforeEach, describe, expect, it } from "vitest";
 import request from "supertest";
 import { PrismaClient } from "@prisma/client";
 import { createApp } from "../backend/src/app.js";
-import { syncEnvUser } from "../backend/src/lib/envUser.js";
 
 const prisma = new PrismaClient();
 const app = createApp();
@@ -23,15 +22,12 @@ describe("API integration", () => {
   let agent: request.Agent;
 
   beforeEach(async () => {
-    process.env.BUDGET_ADMIN_USERNAME = "testuser";
-    process.env.BUDGET_ADMIN_PASSWORD = "password123";
     await resetDb();
-    await syncEnvUser();
     agent = request.agent(app);
     await agent
-      .post("/api/auth/login")
+      .post("/api/auth/signup")
       .send({ username: "testuser", password: "password123" })
-      .expect(200);
+      .expect(201);
   });
 
   afterAll(async () => {
@@ -126,6 +122,17 @@ describe("API integration", () => {
   it("returns 401 for protected routes without session", async () => {
     await resetDb();
     await request(app).get("/api/categories").expect(401);
+  });
+
+  it("rejects duplicate signup username", async () => {
+    await resetDb();
+    const a = request.agent(app);
+    await a.post("/api/auth/signup").send({ username: "dup", password: "password12" }).expect(201);
+    const dup = await request(app)
+      .post("/api/auth/signup")
+      .send({ username: "dup", password: "password12" })
+      .expect(409);
+    expect(dup.body.error).toBeTruthy();
   });
 
   it("requires recurring subcategory when template defines subcategories", async () => {

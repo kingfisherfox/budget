@@ -1,6 +1,6 @@
 # Data entities
 
-The app uses a **single user** row per deployment; credentials are set via **`BUDGET_ADMIN_USERNAME`** / **`BUDGET_ADMIN_PASSWORD`** in the environment (no public signup). Passwords are stored as **bcrypt** hashes only; the API refreshes the hash from env on startup.
+Multiple **User** rows are allowed. **`POST /api/auth/signup`** (UI: **`/account`**) inserts a row with **`passwordHash` = bcrypt** (cost 12); **`POST /api/auth/login`** loads the row and **`bcrypt.compare`**. Plain passwords are never stored. Each user has their own categories, settings, expenses, and sessions.
 
 ## User
 
@@ -8,7 +8,7 @@ The app uses a **single user** row per deployment; credentials are set via **`BU
 |-------|------|-------------|
 | id | String (cuid) | Primary key |
 | username | String | Unique, stored lowercase |
-| passwordHash | String | bcrypt hash |
+| passwordHash | String | bcrypt hash only (see `backend/src/routes/auth.ts`) |
 | createdAt / updatedAt | DateTime | UTC |
 
 ## Session

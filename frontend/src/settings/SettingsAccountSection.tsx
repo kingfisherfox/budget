@@ -32,8 +32,8 @@ export function SettingsAccountSection() {
         </p>
       )}
       <p className="text-xs text-slate-500">
-        To change the password, update <code className="text-[11px]">BUDGET_ADMIN_PASSWORD</code> in your{" "}
-        <code className="text-[11px]">.env</code> and restart the API.
+        Password changes are not available in the app yet. To reset access, remove the user row in the database
+        or start from a fresh volume, then sign up again.
       </p>
       {err && <p className="text-sm font-medium text-red-600">{err}</p>}
 

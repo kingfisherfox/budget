@@ -4,7 +4,7 @@ Base path: `/api`. JSON bodies and responses unless noted.
 
 **Health (no auth):** `GET /health` → `{ ok: true }` (root server path, not under `/api`).
 
-**Authentication:** Session cookie `budget_session` (httpOnly, `SameSite=Lax`; `Secure` when `NODE_ENV=production`). All routes except `/api/auth/*` public handlers require a valid session. The SPA sends `credentials: "include"` on `fetch`. Users are **not** self-registered — see **Auth** below.
+**Authentication:** Session cookie `budget_session` (httpOnly, `SameSite=Lax`; `Secure` when the request is HTTPS / `req.secure`). All routes except public `/api/auth/*` handlers require a valid session. The SPA sends `credentials: "include"` on `fetch`.
 
 **CORS:** API uses `credentials: true` and reflected `Origin` so cookies work when frontend and API are on different origins during dev.
 
@@ -13,14 +13,15 @@ Base path: `/api`. JSON bodies and responses unless noted.
 - `400` — validation error; body `{ "error": string }` or `{ "errors": Record<string, string[]> }`
 - `401` — not authenticated (missing/invalid session)
 - `404` — resource not found
-- `409` — conflict (e.g. duplicate recurring payment for same month)
+- `409` — conflict (e.g. username taken on signup, duplicate recurring payment for same month)
 
 ## Auth
 
-There is **no** `POST /api/auth/signup` and **no** `POST /api/auth/change-password`. The single app user is defined by **`BUDGET_ADMIN_USERNAME`** and **`BUDGET_ADMIN_PASSWORD`** in the server environment (repo **`.env.example`**). On **API startup** (`backend/src/index.ts`), **`syncEnvUser()`** runs before `listen`: creates the user if missing, or **replaces the bcrypt hash** from the env password. Missing/invalid env → process **exits** (see `backend/src/lib/envUser.ts`).
+Users are stored in PostgreSQL with **bcrypt** password hashes. There is **no** `POST /api/auth/change-password` in the API yet.
 
 - `GET /api/auth/me` — `{ user: { id, username } | null }` (no cookie → `user: null`)
-- `POST /api/auth/login` body `{ username, password }` — must match the env-configured user; username 3–64 chars `[a-zA-Z0-9_-]+`, password 8–128 chars; `200` + `Set-Cookie` + `{ user }`; `401` if invalid
+- `POST /api/auth/signup` body `{ username, password }` — username 3–64 chars `[a-zA-Z0-9_-]+`, password 8–128 chars; `201` + `Set-Cookie` + `{ user }`; `409` if username already taken
+- `POST /api/auth/login` body `{ username, password }` — `200` + `Set-Cookie` + `{ user }`; `401` if invalid
 - `POST /api/auth/logout` — clears server session + cookie; `204`
 
 ## App settings

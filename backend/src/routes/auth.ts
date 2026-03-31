@@ -62,6 +62,32 @@ authRouter.get("/me", async (req: Request, res: Response, next) => {
   }
 });
 
+authRouter.post("/signup", async (req, res, next) => {
+  try {
+    const parsed = loginSchema.safeParse(req.body);
+    if (!parsed.success) {
+      throw new HttpError(400, "Validation failed", { errors: parsed.error.flatten() });
+    }
+    const username = parsed.data.username.toLowerCase();
+    const taken = await prisma.user.findUnique({ where: { username } });
+    if (taken) {
+      throw new HttpError(409, "Username already taken");
+    }
+    const passwordHash = await bcrypt.hash(parsed.data.password, 12);
+    const user = await prisma.user.create({
+      data: {
+        username,
+        passwordHash,
+        appSettings: { create: { currencyCode: "THB", domainName: "" } },
+      },
+    });
+    await createSession(user.id, req, res);
+    res.status(201).json({ user: { id: user.id, username: user.username } });
+  } catch (e) {
+    next(e);
+  }
+});
+
 authRouter.post("/login", async (req, res, next) => {
   try {
     const parsed = loginSchema.safeParse(req.body);

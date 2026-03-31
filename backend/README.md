@@ -14,11 +14,12 @@ npm run build && npm start # compile to dist/, run node dist/index.js
 
 ## Environment
 
-- **`DATABASE_URL`** — required (PostgreSQL connection string).
-- **`BUDGET_ADMIN_USERNAME`** / **`BUDGET_ADMIN_PASSWORD`** — required; **no signup** — `src/lib/envUser.ts` syncs one user before the server listens. Invalid/missing values **exit the process**. See repo root **`.env.example`**. `dotenv` loads **`backend/.env`** when you run from this directory.
+- **`DATABASE_URL`** — required (PostgreSQL). With Docker Compose from the repo, Postgres is on host **5961**; use **`backend/.env.example`** as a template for local `npm run dev`.
 
-**Auth overview:** **[`../README.md`](../README.md)** (Authentication section) and **[`../docs/deployment.md`](../docs/deployment.md)**.
+**Auth:** Users are created via **`POST /api/auth/signup`** (or the `/account` UI). Passwords are bcrypt-hashed in the database. No admin env vars.
+
+**Overview:** **[`../README.md`](../README.md)** and **[`../docs/deployment.md`](../docs/deployment.md)**.
 
 ## Documentation
 
-Schema and REST contract: **[`../docs/entities.md`](../docs/entities.md)**, **[`../docs/api.md`](../docs/api.md)**. Deployment and Docker: **[`../docs/deployment.md`](../docs/deployment.md)**.
+Schema and REST: **[`../docs/entities.md`](../docs/entities.md)**, **[`../docs/api.md`](../docs/api.md)**.

@@ -17,10 +17,23 @@ function apiUrl(path: string): string {
 
 const cred: RequestInit = { credentials: "include" };
 
+type ApiErrorBody = {
+  error?: string;
+  errors?: { fieldErrors?: Record<string, string[]>; formErrors?: string[] };
+};
+
 async function parseError(res: Response): Promise<string> {
   try {
-    const j = (await res.json()) as { error?: string };
-    return j.error ?? res.statusText;
+    const j = (await res.json()) as ApiErrorBody;
+    const base = j.error ?? res.statusText;
+    const fe = j.errors?.fieldErrors;
+    if (fe) {
+      const first = Object.values(fe).flat()[0];
+      if (first) return `${base}: ${first}`;
+    }
+    const form = j.errors?.formErrors?.filter(Boolean);
+    if (form?.length) return `${base}: ${form[0]}`;
+    return base;
   } catch {
     return res.statusText;
   }

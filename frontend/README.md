@@ -21,7 +21,7 @@ Output: `dist/` — static assets plus `manifest.webmanifest` and `sw.js` copied
 
 ## Auth in the browser
 
-The SPA uses **`/account`** for login only (credentials match server **`BUDGET_ADMIN_*`** env — see root **`.env.example`**). API calls use **`credentials: "include"`** for the **`budget_session`** cookie. Root **[`../README.md`](../README.md)** describes the full auth model.
+**`/account`** — sign up or sign in. API calls use **`credentials: "include"`** for the **`budget_session`** cookie. See root **[`../README.md`](../README.md)** and **[`../docs/api.md`](../docs/api.md)**.
 
 ## Project docs
 
