@@ -1,17 +1,12 @@
 node_modules/
 dist/
+
+# Secrets only — keep `.env.example` tracked (copy → `.env` for local use).
 .env
 .env.local
 *.log
 .DS_Store
 
-# --- scripts/ (shell helpers are tracked; ignore local overrides and outputs)
-scripts/*.local.*
-scripts/.env
-scripts/output/
-
-# --- tests/ (integration tests are tracked; ignore artifacts only)
-tests/coverage/
-tests/.cache/
-tests/tmp/
-tests/**/*.log
+# Not tracked (local copies only)
+tests/
+scripts/
