@@ -35,8 +35,6 @@ services:
       NODE_ENV: production
       DATABASE_URL: postgresql://postgres:postgres@db:5432/expenses
       PORT: 4000
-      BUDGET_ADMIN_USERNAME: ${BUDGET_ADMIN_USERNAME:-owner}
-      BUDGET_ADMIN_PASSWORD: ${BUDGET_ADMIN_PASSWORD:-password123}
     depends_on:
       db:
         condition: service_healthy
