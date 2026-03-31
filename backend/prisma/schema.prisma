@@ -1,0 +1,70 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model AppSettings {
+  id           Int    @id @default(1)
+  currencyCode String @default("THB")
+}
+
+model Category {
+  id         String   @id @default(cuid())
+  name       String
+  color      String?
+  sortOrder  Int      @default(0)
+  createdAt  DateTime @default(now())
+  budget     CategoryBudget?
+  expenses   Expense[]
+  recurring  RecurringExpense[]
+  wishlist   WishlistItem[]
+}
+
+model CategoryBudget {
+  id            String   @id @default(cuid())
+  categoryId    String   @unique
+  monthlyAmount Decimal  @db.Decimal(14, 2)
+  category      Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+}
+
+model Expense {
+  id                 String   @id @default(cuid())
+  name               String   @default("")
+  categoryId         String
+  amount             Decimal  @db.Decimal(14, 2)
+  date               DateTime @db.Date
+  note               String?
+  recurringExpenseId String?
+  createdAt          DateTime @default(now())
+  category           Category @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  recurringExpense   RecurringExpense? @relation(fields: [recurringExpenseId], references: [id], onDelete: SetNull)
+
+  @@index([date])
+  @@index([categoryId, date])
+}
+
+model RecurringExpense {
+  id            String    @id @default(cuid())
+  name          String
+  categoryId    String
+  defaultAmount Decimal?  @db.Decimal(14, 2)
+  isCommon      Boolean   @default(false)
+  sortOrder     Int       @default(0)
+  createdAt     DateTime  @default(now())
+  category      Category  @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  expenses      Expense[]
+}
+
+model WishlistItem {
+  id         String   @id @default(cuid())
+  name       String
+  categoryId String
+  amount     Decimal  @db.Decimal(14, 2)
+  note       String?
+  createdAt  DateTime @default(now())
+  category   Category @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+}
