@@ -1,5 +1,10 @@
 # Deployment and local development
 
+## Compose files and git
+
+- **[`docker-compose.yml`](../docker-compose.yml)** and **[`docker-compose.dev.yml`](../docker-compose.dev.yml)** are **tracked** in git so installs and contributors share the same stacks.
+- **`docker-compose.override.yml`** is **gitignored**. If you need machine-only ports or env, add that file next to `docker-compose.yml`; Compose loads it automatically when present ([Docker Compose merge](https://docs.docker.com/compose/how-tos/multiple-compose-files/)).
+
 ## Authentication
 
 - **No signup API** and **no in-app password change.** The only user is defined by **`BUDGET_ADMIN_USERNAME`** / **`BUDGET_ADMIN_PASSWORD`**.
@@ -20,7 +25,13 @@ Copy **[`.env.example`](../.env.example)** to **`.env`** in the project root (or
 **Docker Compose defaults:** If `BUDGET_ADMIN_USERNAME` / `BUDGET_ADMIN_PASSWORD` are unset in `.env`, compose uses **`owner`** / **`password123`** (development only — set real values in `.env` for production).
 
 
-## Docker Compose (development with hot reload)
+## Docker Compose (production / public release)
+
+Default **[`docker-compose.yml`](../docker-compose.yml)** is intended for **fresh installs** and production-like runs:
+
+- **`web`:** Built SPA served by **nginx** inside the image. Host **`8081` → container `80`**. The browser loads the app on **`http://localhost:8081`**; **`/api`** is proxied to the **`api`** service (see [`frontend/nginx.conf`](../frontend/nginx.conf)).
+- **`api`:** **Compiled** Node app (`runner` image stage). On **every container start**, the entrypoint runs **`npx prisma migrate deploy`**, then starts the server. That is **expected**: on a new database it applies all migrations once; on an already-migrated database it is a **no-op**. It is **not** the same as `migrate dev` (which creates migrations).
+- **`db`:** Postgres 16 with a named volume **`pgdata`**.
 
 From repo root:
 
@@ -28,11 +39,25 @@ From repo root:
 docker compose up --build
 ```
 
-After changing **backend or frontend** `package.json`, either run `docker compose up` (the dev commands run `npm install` on start so the `node_modules` volume picks up new deps) or rebuild: `docker compose build api web`. If the API container crashes on startup, check `docker compose logs api` — missing modules usually mean the image/volume predates a dependency add.
+After dependency changes in `package.json`, run **`docker compose up --build`** (or `docker compose build` then `up`) so images pick up new lockfiles.
 
-Services: `db`, `api`, and `web` share an explicit **`budget-net`** bridge network (see `docker-compose.yml`). **Only `web`** publishes a host port: **`8081` → `8080`** (Vite). The **API is not exposed** on the host; the browser uses `http://localhost:8081` (or your tunnel to `server:8081`) and same-origin **`/api/...`**; Vite proxies to **`http://api:4000`** over `budget-net`, where the hostname `api` resolves to the API container.
+**Hardening on a server:** Comment out or remove the **`5432:5432`** port mapping on **`db`** if you do not need host access to Postgres. Point reverse proxies at **`8081`** (or map `web` to `80:80` and use your edge TLS). Do not expose the API port on the host unless you intend to; nginx talks to **`api:4000`** on the internal network.
 
-**Tunnel use case:** Point the tunnel at **`server:8081` only**. Do not tunnel port 4000 unless you intentionally want the API public. Postgres **`5432`** is optional on the host for local tools — comment it out in `docker-compose.yml` on a production server if you want DB unreachable from outside Docker.
+## Docker Compose (development with hot reload)
+
+Use the **standalone** **[`docker-compose.dev.yml`](../docker-compose.dev.yml)** — do **not** merge it with `docker-compose.yml` (Compose would merge `ports` incorrectly).
+
+```bash
+docker compose -f docker-compose.dev.yml up --build
+```
+
+- **`web`:** Vite dev server; host **`8081` → `8080`**. **`API_URL=http://api:4000`** for the Vite proxy.
+- **`api`:** Bind-mount of `./backend`, **`npm run dev`** after `migrate deploy`.
+- **`db`:** Uses volume **`pgdata_dev`** (separate from production **`pgdata`** if you run both stacks on one machine).
+
+After changing **backend or frontend** `package.json`, the start script runs **`npm install`**; you can also rebuild images. If the API container crashes, check `docker compose -f docker-compose.dev.yml logs api`.
+
+**Tunnel use case:** Point the tunnel at **`server:8081` only**. Do not tunnel port 4000 unless you intentionally want the API public.
 
 **Reverse proxies (e.g. Pangolin):** Forward `Cookie` and `Set-Cookie` for `/api` so session auth works. PWA install still benefits from unauthenticated static asset paths as documented in `ui-pages.md`.
 

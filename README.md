@@ -20,6 +20,8 @@ If you change dependencies, run `docker compose up --build` once.
 
 To stop: `Ctrl+C` or `docker compose down`.
 
+**Developers (hot reload):** `docker compose -f docker-compose.dev.yml up --build` — see [`docs/deployment.md`](docs/deployment.md).
+
 ---
 
 **More help:** configuration, production hosting, API details, and database notes are in **[`docs/`](docs/README.md)** (start with [`docs/deployment.md`](docs/deployment.md)).

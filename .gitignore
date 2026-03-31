@@ -10,3 +10,6 @@ dist/
 # Not tracked (local copies only)
 tests/
 scripts/
+
+# Optional per-machine Docker Compose overrides (same directory as docker-compose.yml)
+docker-compose.override.yml

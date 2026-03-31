@@ -1,5 +1,7 @@
 import { config } from "dotenv";
-config();
+if (process.env.NODE_ENV !== "production") {
+  config();
+}
 
 import { createApp } from "./app.js";
 import { syncEnvUser } from "./lib/envUser.js";

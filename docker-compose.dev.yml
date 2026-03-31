@@ -14,43 +14,51 @@ services:
       POSTGRES_PASSWORD: postgres
       POSTGRES_DB: expenses
     volumes:
-      - pgdata:/var/lib/postgresql/data
+      - pgdata_dev:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 3s
       timeout: 5s
       retries: 5
-    restart: unless-stopped
 
   api:
     build:
       context: ./backend
       dockerfile: Dockerfile
-      target: runner
+      target: deps
     networks:
       - budget-net
+    command: sh -c "npm install && npx prisma generate && npx prisma migrate deploy && npm run dev"
     environment:
-      NODE_ENV: production
+      NODE_ENV: development
       DATABASE_URL: postgresql://postgres:postgres@db:5432/expenses
       PORT: 4000
       BUDGET_ADMIN_USERNAME: ${BUDGET_ADMIN_USERNAME:-owner}
       BUDGET_ADMIN_PASSWORD: ${BUDGET_ADMIN_PASSWORD:-password123}
+    volumes:
+      - ./backend:/app
+      - /app/node_modules
     depends_on:
       db:
         condition: service_healthy
-    restart: unless-stopped
 
   web:
     build:
       context: ./frontend
       dockerfile: Dockerfile
+      target: deps
     networks:
       - budget-net
+    command: sh -c "npm install && npm run dev"
+    environment:
+      API_URL: http://api:4000
     ports:
-      - "8081:80"
+      - "8081:8080"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
     depends_on:
       - api
-    restart: unless-stopped
 
 volumes:
-  pgdata:
+  pgdata_dev:
