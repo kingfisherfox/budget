@@ -5,9 +5,12 @@
 - **Product name:** Budget — lightweight spend tracker (ease of use).
 - **Static assets:** `frontend/public/img/icon.png` — favicon, `apple-touch-icon`, and PWA manifest icons. Replace this file with the final app icon (512×512 PNG recommended).
 - **Metadata:** `frontend/index.html` sets title, description, theme color, and Apple / mobile web-app meta tags for “Add to Home Screen”.
-- **Manifest:** `frontend/public/manifest.webmanifest` — `standalone` display, `start_url` `/`, references `/img/icon.png`. Served at `/manifest.webmanifest` after build.
+- **Manifest:** `frontend/public/manifest.webmanifest` — `standalone` display, `start_url` `/`, references `/img/icon.png`.
+- **Minimal service worker:** `frontend/public/sw.js` — `install`/`activate` + `fetch` that always uses the network (**no caching**). Registered from `main.tsx` via `registerServiceWorker()` in `frontend/src/lib/pwa.ts` so install prompts work on Chromium without offline precaching.
+- **Offline UX:** `AppLayout` listens for `online`/`offline` and shows a non-blocking banner (`isOffline()` in `pwa.ts`) explaining that a connection is required; API data is not available offline.
+- **PWA install UX:** `PwaInstallBanner` listens for `beforeinstallprompt` (Chromium) and shows an iOS “Add to Home Screen” tip in Safari; both are hidden when `display-mode: standalone` or iOS `navigator.standalone` is true.
 
-Shared **month** state (URL query `?month=YYYY-MM` or React context synced with URL) for Dashboard and Expenses.
+Shared **month** state (URL query `?month=YYYY-MM` or React context synced with URL) for Dashboard and Expenses. The header shows a label like **March - 2026** via `formatMonthDisplay()` in `frontend/src/lib/month.ts` (full month name, ` - `, year, UTC).
 
 | Route | Page | API calls |
 |-------|------|-----------|

@@ -2,7 +2,7 @@ import { useState } from "react";
 import { apiPost } from "../api/client";
 import type { RecurringStatus } from "../api/types";
 import { formatMoney } from "../lib/money";
-import { todayISODateUTC } from "../lib/month";
+import { formatMonthDisplay, todayISODateUTC } from "../lib/month";
 
 type Props = {
   items: RecurringStatus[];
@@ -76,7 +76,7 @@ export function RecurringSection({
           ))
         )}
       </div>
-      <p className="text-xs text-slate-400">Month: {month}</p>
+      <p className="text-xs text-slate-400">Month: {formatMonthDisplay(month)}</p>
 
       {selectedRecurring && (
         <RecurringConfirmModal

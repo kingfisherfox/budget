@@ -1,4 +1,4 @@
-import { shiftMonth } from "../lib/month";
+import { formatMonthDisplay, shiftMonth } from "../lib/month";
 import { useMonth } from "../context/MonthContext";
 
 export function MonthStrip() {
@@ -13,8 +13,8 @@ export function MonthStrip() {
       >
         ‹
       </button>
-      <span className="text-sm font-bold uppercase tracking-widest text-neutral-900 tabular-nums">
-        {month}
+      <span className="text-center text-sm font-bold capitalize tracking-tight text-neutral-900">
+        {formatMonthDisplay(month)}
       </span>
       <button
         type="button"

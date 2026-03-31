@@ -17,6 +17,18 @@ export function shiftMonth(month: string, delta: number): string {
   return `${yy}-${mm}`;
 }
 
+/** `YYYY-MM` → e.g. `August - 2026` (UTC month, for UI labels). */
+export function formatMonthDisplay(month: string): string {
+  if (!isValidMonth(month)) return month;
+  const [y, mo] = month.split("-").map(Number);
+  const d = new Date(Date.UTC(y, mo - 1, 1));
+  const name = new Intl.DateTimeFormat(undefined, {
+    month: "long",
+    timeZone: "UTC",
+  }).format(d);
+  return `${name} - ${y}`;
+}
+
 export function todayISODateUTC(): string {
   const n = new Date();
   const y = n.getUTCFullYear();

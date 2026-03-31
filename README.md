@@ -2,7 +2,7 @@
 
 **Budget** is a lightweight spend tracker built for ease of use — mobile-first, fast logging, budgets, and recurring/common spends. Built with React, Node.js, Express, and PostgreSQL.
 
-On phones, open the site in the browser and use **Add to Home Screen** / **Install app**; the app name, icon, and standalone display are configured via `frontend/index.html` and `frontend/public/manifest.webmanifest`. Replace `frontend/public/img/icon.png` with your own 512×512 (or larger square) PNG for the home-screen icon.
+On phones, open the site in the browser and use **Add to Home Screen** / **Install app**; metadata is in `frontend/index.html`, `frontend/public/manifest.webmanifest`, and a **minimal** `frontend/public/sw.js` (network-only — no asset caching) so Chromium can treat the app as installable. Replace `frontend/public/img/icon.png` with your own 512×512 (or larger square) PNG for the home-screen icon. When the device is offline, the app shows a clear message that a connection is required (data is not stored offline).
 
 ## Features
 
@@ -13,12 +13,13 @@ On phones, open the site in the browser and use **Add to Home Screen** / **Insta
 - **Wishlist**: Save items you want to buy later. When you're ready, convert them directly into expenses.
 - **Multi-Currency Support**: Choose your preferred currency from the settings.
 - **Mobile-First Design**: Clean, sharp, modern UI optimized for use on your phone.
+- **PWA / installable**: Web app manifest + minimal service worker + install banner so the app can open in standalone mode like an app; offline usage shows an in-app message instead of caching data for later sync.
 
 ---
 
 ## Architecture & Tech Stack
 
-- **Frontend**: React 19, TypeScript, Vite, Tailwind CSS v4, Recharts (for data visualization).
+- **Frontend**: React 19, TypeScript, Vite, Tailwind CSS v4, Recharts.
 - **Backend**: Node.js, Express, TypeScript, Zod (for validation).
 - **Database**: PostgreSQL with Prisma ORM.
 - **Deployment**: Fully containerized using Docker and Docker Compose (Nginx for frontend, Node for API, Postgres for DB).
