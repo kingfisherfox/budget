@@ -19,6 +19,7 @@ const createSchema = z.object({
   date: z.string(),
   note: z.string().max(2000).optional().nullable(),
   recurringExpenseId: z.string().optional().nullable(),
+  recurringSubcategoryId: z.string().optional().nullable(),
 });
 
 const patchSchema = z.object({
@@ -44,6 +45,7 @@ function mapExpense(
     date: e.date.toISOString().slice(0, 10),
     note: e.note,
     recurringExpenseId: e.recurringExpenseId,
+    recurringSubcategoryId: e.recurringSubcategoryId,
     createdAt: e.createdAt,
     category: e.category,
   };
@@ -124,12 +126,19 @@ expensesRouter.post("/", async (req, res, next) => {
     const d = parseISODateUtc(parsed.data.date);
     const categoryId = parsed.data.categoryId;
     const recurringExpenseId = parsed.data.recurringExpenseId ?? undefined;
+    const recurringSubcategoryIdBody = parsed.data.recurringSubcategoryId ?? undefined;
 
     await assertCategoryOwned(uid, categoryId);
+
+    let expenseName = parsed.data.name?.trim() ?? "";
+    let recurringSubcategoryId: string | undefined;
 
     if (recurringExpenseId) {
       const rec = await prisma.recurringExpense.findFirst({
         where: { id: recurringExpenseId, category: { userId: uid } },
+        include: {
+          subcategories: { orderBy: [{ sortOrder: "asc" }, { name: "asc" }] },
+        },
       });
       if (!rec) throw new HttpError(400, "Recurring expense not found");
       if (rec.categoryId !== categoryId) {
@@ -138,16 +147,35 @@ expensesRouter.post("/", async (req, res, next) => {
       if (!rec.isCommon) {
         await assertRecurringMonthUnique(uid, recurringExpenseId, d);
       }
+      if (rec.subcategories.length > 0) {
+        if (!recurringSubcategoryIdBody) {
+          throw new HttpError(400, "This recurring template requires a subcategory");
+        }
+        const sub = rec.subcategories.find((s) => s.id === recurringSubcategoryIdBody);
+        if (!sub) {
+          throw new HttpError(400, "Invalid recurring subcategory");
+        }
+        expenseName = sub.name;
+        recurringSubcategoryId = sub.id;
+      } else {
+        if (recurringSubcategoryIdBody) {
+          throw new HttpError(400, "This recurring template has no subcategories");
+        }
+        if (!expenseName) expenseName = rec.name;
+      }
+    } else if (recurringSubcategoryIdBody) {
+      throw new HttpError(400, "recurringSubcategoryId requires recurringExpenseId");
     }
 
     const row = await prisma.expense.create({
       data: {
-        name: parsed.data.name ?? "",
+        name: expenseName,
         categoryId,
         amount: parsed.data.amount,
         date: d,
         note: parsed.data.note ?? undefined,
         recurringExpenseId,
+        recurringSubcategoryId,
       },
       include: { category: { select: { id: true, name: true } } },
     });

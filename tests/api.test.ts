@@ -2,6 +2,7 @@ import { afterAll, beforeEach, describe, expect, it } from "vitest";
 import request from "supertest";
 import { PrismaClient } from "@prisma/client";
 import { createApp } from "../backend/src/app.js";
+import { syncEnvUser } from "../backend/src/lib/envUser.js";
 
 const prisma = new PrismaClient();
 const app = createApp();
@@ -10,6 +11,7 @@ async function resetDb() {
   await prisma.session.deleteMany();
   await prisma.expense.deleteMany();
   await prisma.wishlistItem.deleteMany();
+  await prisma.recurringSubcategory.deleteMany();
   await prisma.recurringExpense.deleteMany();
   await prisma.categoryBudget.deleteMany();
   await prisma.category.deleteMany();
@@ -21,12 +23,15 @@ describe("API integration", () => {
   let agent: request.Agent;
 
   beforeEach(async () => {
+    process.env.BUDGET_ADMIN_USERNAME = "testuser";
+    process.env.BUDGET_ADMIN_PASSWORD = "password123";
     await resetDb();
+    await syncEnvUser();
     agent = request.agent(app);
     await agent
-      .post("/api/auth/signup")
+      .post("/api/auth/login")
       .send({ username: "testuser", password: "password123" })
-      .expect(201);
+      .expect(200);
   });
 
   afterAll(async () => {
@@ -121,5 +126,49 @@ describe("API integration", () => {
   it("returns 401 for protected routes without session", async () => {
     await resetDb();
     await request(app).get("/api/categories").expect(401);
+  });
+
+  it("requires recurring subcategory when template defines subcategories", async () => {
+    const cat = await agent.post("/api/categories").send({ name: "Food" }).expect(201);
+    const cid = cat.body.id as string;
+
+    const rec = await agent
+      .post("/api/recurring-expenses")
+      .send({
+        name: "Shopping",
+        categoryId: cid,
+        subcategories: [{ name: "Villa" }, { name: "Tops" }],
+      })
+      .expect(201);
+    const rid = rec.body.id as string;
+    const subVilla = (rec.body.subcategories as { id: string; name: string }[]).find(
+      (s) => s.name === "Villa"
+    );
+    expect(subVilla).toBeTruthy();
+
+    const missing = await agent
+      .post("/api/expenses")
+      .send({
+        name: "ignored",
+        categoryId: cid,
+        amount: 100,
+        date: "2026-03-05",
+        recurringExpenseId: rid,
+      })
+      .expect(400);
+    expect(missing.body.error).toContain("subcategory");
+
+    const ok = await agent
+      .post("/api/expenses")
+      .send({
+        categoryId: cid,
+        amount: 250,
+        date: "2026-03-05",
+        recurringExpenseId: rid,
+        recurringSubcategoryId: subVilla!.id,
+      })
+      .expect(201);
+    expect(ok.body.name).toBe("Villa");
+    expect(ok.body.recurringSubcategoryId).toBe(subVilla!.id);
   });
 });

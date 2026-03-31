@@ -171,6 +171,7 @@ wishlistRouter.post("/:id/purchase", async (req, res, next) => {
         date: expense.date.toISOString().slice(0, 10),
         note: expense.note,
         recurringExpenseId: expense.recurringExpenseId,
+        recurringSubcategoryId: expense.recurringSubcategoryId,
         createdAt: expense.createdAt,
         category: expense.category,
       },

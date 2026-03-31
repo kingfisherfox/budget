@@ -1,19 +1,15 @@
-import { PrismaClient } from "@prisma/client";
-import bcrypt from "bcryptjs";
+import { config } from "dotenv";
+config();
 
-const prisma = new PrismaClient();
+import { prisma } from "../src/lib/prisma.js";
+import { syncEnvUser } from "../src/lib/envUser.js";
 
+/**
+ * Ensures the env-configured user exists (same as API startup).
+ * Requires `BUDGET_ADMIN_USERNAME` and `BUDGET_ADMIN_PASSWORD` in `.env` or the environment.
+ */
 async function main() {
-  const n = await prisma.user.count();
-  if (n > 0) return;
-  const passwordHash = await bcrypt.hash("password123", 12);
-  await prisma.user.create({
-    data: {
-      username: "owner",
-      passwordHash,
-      appSettings: { create: { currencyCode: "THB", domainName: "" } },
-    },
-  });
+  await syncEnvUser();
 }
 
 main()

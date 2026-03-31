@@ -4,7 +4,7 @@ Base path: `/api`. JSON bodies and responses unless noted.
 
 **Health (no auth):** `GET /health` → `{ ok: true }` (root server path, not under `/api`).
 
-**Authentication:** Session cookie `budget_session` (httpOnly, `SameSite=Lax`). All routes except `/api/auth/*` public handlers require a valid session. The SPA sends `credentials: "include"` on `fetch`.
+**Authentication:** Session cookie `budget_session` (httpOnly, `SameSite=Lax`; `Secure` when `NODE_ENV=production`). All routes except `/api/auth/*` public handlers require a valid session. The SPA sends `credentials: "include"` on `fetch`. Users are **not** self-registered — see **Auth** below.
 
 **CORS:** API uses `credentials: true` and reflected `Origin` so cookies work when frontend and API are on different origins during dev.
 
@@ -17,11 +17,11 @@ Base path: `/api`. JSON bodies and responses unless noted.
 
 ## Auth
 
+There is **no** `POST /api/auth/signup` and **no** `POST /api/auth/change-password`. The single app user is defined by **`BUDGET_ADMIN_USERNAME`** and **`BUDGET_ADMIN_PASSWORD`** in the server environment (repo **`.env.example`**). On **API startup** (`backend/src/index.ts`), **`syncEnvUser()`** runs before `listen`: creates the user if missing, or **replaces the bcrypt hash** from the env password. Missing/invalid env → process **exits** (see `backend/src/lib/envUser.ts`).
+
 - `GET /api/auth/me` — `{ user: { id, username } | null }` (no cookie → `user: null`)
-- `POST /api/auth/signup` body `{ username, password }` — username 3–64 chars `[a-zA-Z0-9_-]+`, password 8–128 chars; creates user + default `AppSettings`; `201` + `Set-Cookie` + `{ user }`
-- `POST /api/auth/login` body `{ username, password }` — `200` + cookie + `{ user }`; `401` if invalid
+- `POST /api/auth/login` body `{ username, password }` — must match the env-configured user; username 3–64 chars `[a-zA-Z0-9_-]+`, password 8–128 chars; `200` + `Set-Cookie` + `{ user }`; `401` if invalid
 - `POST /api/auth/logout` — clears server session + cookie; `204`
-- `POST /api/auth/change-password` (authenticated) body `{ currentPassword, newPassword }` — bcrypt update, **revokes all sessions**, clears cookie; `200` `{ ok, message }`; client should send user to login again
 
 ## App settings
 
@@ -41,24 +41,25 @@ Base path: `/api`. JSON bodies and responses unless noted.
 
 ## Expenses
 
-- `GET /api/expenses?month=YYYY-MM` — expenses in that month, ordered by `date` desc, then `createdAt` desc. Each item includes `category: { id, name }`.
+- `GET /api/expenses?month=YYYY-MM` — expenses in that month, ordered by `date` desc, then `createdAt` desc. Each item includes `category: { id, name }`, `recurringSubcategoryId` (nullable).
 - `GET /api/expenses/:id` — single expense with category
 - `POST /api/expenses` body:
   - `categoryId`, `amount`, `date` (ISO date string `YYYY-MM-DD`), `name?`, `note?`
   - `recurringExpenseId?` — if set, `date` must fall in one month; **at most one** expense per `(recurringExpenseId, calendar month)` unless template `isCommon`; `categoryId` must match template’s category
+  - `recurringSubcategoryId?` — if the template has **subcategories**, **required** and must belong to that template; server sets **name** from the subcategory. If the template has **no** subcategories, omit this; use `name` (or server defaults to template name). If set without `recurringExpenseId`, `400`.
 - `PATCH /api/expenses/:id` body partial `{ categoryId?, amount?, date?, name?, note? }` — if changing `recurringExpenseId` month conflict, reject 409
 - `DELETE /api/expenses/:id`
 
 ## Recurring expense templates
 
-- `GET /api/recurring-expenses` — all templates with `category`
-- `POST /api/recurring-expenses` body `{ name, categoryId, defaultAmount?, isCommon?, sortOrder? }`
-- `PATCH /api/recurring-expenses/:id` partial `{ name?, categoryId?, defaultAmount?, isCommon?, sortOrder? }`
+- `GET /api/recurring-expenses` — all templates with `category` and `subcategories: [{ id, name, sortOrder }]`
+- `POST /api/recurring-expenses` body `{ name, categoryId, defaultAmount?, isCommon?, sortOrder?, subcategories?: [{ name, sortOrder? }] }`
+- `PATCH /api/recurring-expenses/:id` partial `{ name?, categoryId?, defaultAmount?, isCommon?, sortOrder?, subcategories?: [{ name, sortOrder? }] }` — if `subcategories` is present, it **replaces** all subcategories for that template (omit field to leave unchanged)
 - `DELETE /api/recurring-expenses/:id`
 
 ### Status for dashboard
 
-- `GET /api/recurring-expenses/status?month=YYYY-MM` → array of `{ id, name, categoryId, defaultAmount, sortOrder, completed: boolean }`
+- `GET /api/recurring-expenses/status?month=YYYY-MM` → array of `{ id, name, categoryId, defaultAmount, sortOrder, category, subcategories, completed: boolean }`
 
 ## Wishlist
 

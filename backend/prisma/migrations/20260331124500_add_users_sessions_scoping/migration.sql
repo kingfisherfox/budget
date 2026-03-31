@@ -31,7 +31,7 @@ CREATE INDEX "Session_userId_idx" ON "Session"("userId");
 -- AlterTable
 ALTER TABLE "Category" ADD COLUMN "userId" TEXT;
 
--- Migrated owner: log in as username "owner", password "password123", then change password in Settings.
+-- Migrated owner: set BUDGET_ADMIN_USERNAME=owner and BUDGET_ADMIN_PASSWORD in .env; API syncs hash on startup.
 INSERT INTO "User" ("id", "username", "passwordHash", "createdAt", "updatedAt")
 VALUES (
   'cmigrationlegacy00001',

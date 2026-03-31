@@ -57,31 +57,46 @@ model CategoryBudget {
 }
 
 model Expense {
-  id                 String   @id @default(cuid())
-  name               String   @default("")
-  categoryId         String
-  amount             Decimal  @db.Decimal(14, 2)
-  date               DateTime @db.Date
-  note               String?
-  recurringExpenseId String?
-  createdAt          DateTime @default(now())
-  category           Category @relation(fields: [categoryId], references: [id], onDelete: Restrict)
-  recurringExpense   RecurringExpense? @relation(fields: [recurringExpenseId], references: [id], onDelete: SetNull)
+  id                       String   @id @default(cuid())
+  name                     String   @default("")
+  categoryId               String
+  amount                   Decimal  @db.Decimal(14, 2)
+  date                     DateTime @db.Date
+  note                     String?
+  recurringExpenseId       String?
+  recurringSubcategoryId   String?
+  createdAt                DateTime @default(now())
+  category                 Category @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  recurringExpense         RecurringExpense? @relation(fields: [recurringExpenseId], references: [id], onDelete: SetNull)
+  recurringSubcategory     RecurringSubcategory? @relation(fields: [recurringSubcategoryId], references: [id], onDelete: SetNull)
 
   @@index([date])
   @@index([categoryId, date])
 }
 
 model RecurringExpense {
-  id            String    @id @default(cuid())
-  name          String
-  categoryId    String
-  defaultAmount Decimal?  @db.Decimal(14, 2)
-  isCommon      Boolean   @default(false)
-  sortOrder     Int       @default(0)
-  createdAt     DateTime  @default(now())
-  category      Category  @relation(fields: [categoryId], references: [id], onDelete: Restrict)
-  expenses      Expense[]
+  id             String                  @id @default(cuid())
+  name           String
+  categoryId     String
+  defaultAmount  Decimal?                @db.Decimal(14, 2)
+  isCommon       Boolean                 @default(false)
+  sortOrder      Int                     @default(0)
+  createdAt      DateTime                @default(now())
+  category       Category                @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  expenses       Expense[]
+  subcategories  RecurringSubcategory[]
+}
+
+model RecurringSubcategory {
+  id                 String   @id @default(cuid())
+  recurringExpenseId String
+  name               String
+  sortOrder          Int      @default(0)
+  createdAt          DateTime @default(now())
+  recurringExpense   RecurringExpense @relation(fields: [recurringExpenseId], references: [id], onDelete: Cascade)
+  expenses           Expense[]
+
+  @@index([recurringExpenseId])
 }
 
 model WishlistItem {
