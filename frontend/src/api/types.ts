@@ -66,4 +66,4 @@ export type DashboardResponse = {
   totals: { budget: number; actual: number };
 };
 
-export type AppSettings = { id: number; currencyCode: string };
+export type AppSettings = { id: number; currencyCode: string; domainName: string };

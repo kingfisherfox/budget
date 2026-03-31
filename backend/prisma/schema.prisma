@@ -10,6 +10,7 @@ datasource db {
 model AppSettings {
   id           Int    @id @default(1)
   currencyCode String @default("THB")
+  domainName   String @default("")
 }
 
 model Category {

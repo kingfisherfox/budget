@@ -4,7 +4,8 @@ import { prisma } from "../lib/prisma.js";
 import { HttpError } from "../middleware/httpError.js";
 
 const patchSchema = z.object({
-  currencyCode: z.string().min(3).max(3).toUpperCase(),
+  currencyCode: z.string().min(3).max(3).toUpperCase().optional(),
+  domainName: z.string().max(255).optional(),
 });
 
 export const appSettingsRouter = Router();
@@ -36,7 +37,10 @@ appSettingsRouter.patch("/", async (req, res, next) => {
     await ensureSettings();
     const row = await prisma.appSettings.update({
       where: { id: 1 },
-      data: { currencyCode: parsed.data.currencyCode },
+      data: {
+        currencyCode: parsed.data.currencyCode,
+        domainName: parsed.data.domainName,
+      },
     });
     res.json(row);
   } catch (e) {

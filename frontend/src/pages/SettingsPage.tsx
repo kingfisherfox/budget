@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { apiDelete, apiGet, apiPost, apiPut } from "../api/client";
+import { apiDelete, apiGet, apiPost, apiPut, apiPatch } from "../api/client";
 import type { Category, RecurringTemplate } from "../api/types";
 import { useCurrency } from "../context/CurrencyContext";
 import { formatMoney } from "../lib/money";
@@ -7,6 +7,8 @@ import { CURRENCY_CODES } from "../settings/currencies";
 
 export function SettingsPage() {
   const { currencyCode, setCurrency } = useCurrency();
+  const [domainName, setDomainName] = useState("");
+  const [domainSaved, setDomainSaved] = useState(false);
   const [categories, setCategories] = useState<Category[]>([]);
   const [recurring, setRecurring] = useState<RecurringTemplate[]>([]);
   const [err, setErr] = useState<string | null>(null);
@@ -22,12 +24,14 @@ export function SettingsPage() {
   const load = useCallback(async () => {
     setErr(null);
     try {
-      const [c, r] = await Promise.all([
+      const [c, r, s] = await Promise.all([
         apiGet<Category[]>("/api/categories"),
         apiGet<RecurringTemplate[]>("/api/recurring-expenses"),
+        apiGet<{ domainName: string }>("/api/app-settings"),
       ]);
       setCategories(c);
       setRecurring(r);
+      setDomainName(s.domainName ?? "");
       const b: Record<string, string> = {};
       for (const x of c) {
         b[x.id] = x.budget?.monthlyAmount ?? "";
@@ -49,6 +53,16 @@ export function SettingsPage() {
       );
     }
   }, [categories]);
+
+  async function saveDomain() {
+    try {
+      await apiPatch("/api/app-settings", { domainName: domainName.trim() });
+      setDomainSaved(true);
+      setTimeout(() => setDomainSaved(false), 2000);
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : "Failed to save domain");
+    }
+  }
 
   async function addCategory() {
     if (!catName.trim()) return;
@@ -124,19 +138,42 @@ export function SettingsPage() {
 
       <section className="flex flex-col gap-4 rounded-none border border-slate-200 bg-white p-5 shadow-sm">
         <h2 className="text-xs font-bold uppercase tracking-widest text-slate-400">
-          Currency
+          General
         </h2>
-        <select
-          className="h-10 w-full rounded-none border border-slate-200 bg-slate-50 px-3 text-sm transition-colors focus:border-indigo-600 focus:bg-white focus:outline-none"
-          value={currencyCode}
-          onChange={(e) => void setCurrency(e.target.value)}
-        >
-          {CURRENCY_CODES.map((c) => (
-            <option key={c} value={c}>
-              {c}
-            </option>
-          ))}
-        </select>
+        <div className="flex flex-col gap-3">
+          <label className="flex flex-col gap-1 text-sm font-medium text-slate-700">
+            <span className="text-xs uppercase tracking-wider text-slate-500">Currency</span>
+            <select
+              className="h-10 w-full rounded-none border border-slate-200 bg-slate-50 px-3 text-sm transition-colors focus:border-indigo-600 focus:bg-white focus:outline-none"
+              value={currencyCode}
+              onChange={(e) => void setCurrency(e.target.value)}
+            >
+              {CURRENCY_CODES.map((c) => (
+                <option key={c} value={c}>
+                  {c}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="flex flex-col gap-1 text-sm font-medium text-slate-700">
+            <span className="text-xs uppercase tracking-wider text-slate-500">Domain Name</span>
+            <div className="flex gap-2">
+              <input
+                className="h-10 flex-1 rounded-none border border-slate-200 bg-slate-50 px-3 text-sm transition-colors focus:border-indigo-600 focus:bg-white focus:outline-none"
+                placeholder="e.g. my-app.ngrok.io"
+                value={domainName}
+                onChange={(e) => setDomainName(e.target.value)}
+              />
+              <button
+                type="button"
+                className="h-10 rounded-none bg-indigo-600 px-4 text-xs font-bold uppercase tracking-wider text-white transition-colors hover:bg-indigo-700 active:bg-indigo-800"
+                onClick={() => void saveDomain()}
+              >
+                {domainSaved ? "Saved!" : "Save"}
+              </button>
+            </div>
+          </label>
+        </div>
       </section>
 
       <section className="flex flex-col gap-4 rounded-none border border-slate-200 bg-white p-5 shadow-sm">

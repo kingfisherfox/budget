@@ -38,7 +38,7 @@ export function RecurringSection({
           Show hidden
         </label>
       </div>
-      <div className="grid grid-cols-2 gap-3 pt-2 sm:grid-cols-3">
+      <div className="grid grid-cols-2 gap-x-3 gap-y-4 pt-3 sm:grid-cols-3">
         {visible.length === 0 ? (
           <p className="col-span-full text-sm text-slate-500">
             {items.length === 0
@@ -57,7 +57,7 @@ export function RecurringSection({
               }}
             >
               {r.isCommon && (
-                <span className="absolute left-2 top-0 -translate-y-1/2 bg-[#a3e635] px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-white shadow-sm">
+                <span className="absolute -top-2.5 left-3 bg-[#a3e635] px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-white shadow-sm">
                   Common
                 </span>
               )}
