@@ -65,52 +65,56 @@ export function ExpensesPage() {
         <div className="flex flex-col gap-6">
           {sortedDates.map((date) => (
             <div key={date} className="flex flex-col gap-2">
-              <h2 className="text-sm font-bold uppercase tracking-widest text-slate-500">
-                {new Date(date).toLocaleDateString(undefined, { weekday: 'long', month: 'short', day: 'numeric' })}
+              <h2 className="truncate text-xs font-bold uppercase tracking-widest text-slate-500">
+                {new Date(date).toLocaleDateString(undefined, {
+                  weekday: "short",
+                  month: "short",
+                  day: "numeric",
+                })}
               </h2>
               <ul className="flex flex-col divide-y divide-slate-100 rounded-none border border-slate-200 bg-white shadow-sm">
                 {groupedItems[date].map((e) => (
                   <li
                     key={e.id}
-                    className="flex flex-col gap-3 p-5 transition-colors hover:bg-slate-50 md:flex-row md:items-center md:justify-between"
+                    className="flex flex-col gap-1.5 px-3 py-2.5 transition-colors hover:bg-slate-50 sm:px-4 sm:py-3"
                   >
-                    <div className="flex min-w-0 flex-1 flex-col gap-2">
-                      <div className="flex flex-wrap items-baseline gap-3">
-                        <span className="text-base font-bold text-slate-900">{e.name || "Unnamed Expense"}</span>
-                        <span className="text-base font-medium tabular-nums text-slate-900">
-                          {formatMoney(e.amount, currencyCode)}
-                        </span>
-                      </div>
-                      <div className="flex flex-wrap items-center gap-2">
-                        <span className="inline-flex items-center rounded-none bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-600">
+                    <div className="flex min-w-0 items-center gap-2">
+                      <span className="min-w-0 flex-1 truncate text-sm font-bold text-slate-900">
+                        {e.name || "Unnamed"}
+                      </span>
+                      <span className="shrink-0 text-sm font-semibold tabular-nums text-slate-900">
+                        {formatMoney(e.amount, currencyCode)}
+                      </span>
+                    </div>
+                    <div className="flex min-w-0 items-center justify-between gap-2">
+                      <div className="flex min-w-0 flex-1 flex-nowrap items-center gap-1.5 overflow-hidden">
+                        <span className="max-w-[55%] shrink truncate whitespace-nowrap bg-slate-100 px-1.5 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-slate-600">
                           {e.category.name}
                         </span>
-                        <span className="inline-flex items-center rounded-none bg-slate-50 px-2 py-0.5 text-[10px] font-medium text-slate-400">
+                        <span className="shrink-0 whitespace-nowrap bg-slate-50 px-1.5 py-0.5 text-[10px] font-medium text-slate-500 tabular-nums">
                           {e.date}
                         </span>
                       </div>
-                      {e.note ? (
-                        <p className="text-sm text-slate-500">
-                          {e.note}
-                        </p>
-                      ) : null}
+                      <div className="flex shrink-0 items-center gap-1">
+                        <button
+                          type="button"
+                          className="h-8 rounded-none border border-slate-200 bg-white px-2.5 text-[10px] font-bold uppercase tracking-wide text-slate-700 transition-colors hover:border-slate-400 hover:bg-slate-50"
+                          onClick={() => setEditing(e)}
+                        >
+                          Edit
+                        </button>
+                        <button
+                          type="button"
+                          className="h-8 rounded-none border border-red-200 bg-white px-2.5 text-[10px] font-bold uppercase tracking-wide text-red-600 transition-colors hover:border-red-400 hover:bg-red-50"
+                          onClick={() => remove(e.id)}
+                        >
+                          Del
+                        </button>
+                      </div>
                     </div>
-                    <div className="flex shrink-0 gap-2">
-                      <button
-                        type="button"
-                        className="h-9 rounded-none border border-slate-200 bg-white px-4 text-xs font-bold uppercase tracking-wider text-slate-700 transition-colors hover:border-slate-400 hover:bg-slate-50"
-                        onClick={() => setEditing(e)}
-                      >
-                        Edit
-                      </button>
-                      <button
-                        type="button"
-                        className="h-9 rounded-none border border-red-200 bg-white px-4 text-xs font-bold uppercase tracking-wider text-red-600 transition-colors hover:border-red-400 hover:bg-red-50"
-                        onClick={() => remove(e.id)}
-                      >
-                        Delete
-                      </button>
-                    </div>
+                    {e.note ? (
+                      <p className="truncate text-xs text-slate-500">{e.note}</p>
+                    ) : null}
                   </li>
                 ))}
               </ul>
