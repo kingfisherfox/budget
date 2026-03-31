@@ -1,21 +1,43 @@
 # Data entities
 
-Single-tenant app: no user table. All data is global; the API is trusted-network only unless auth is added later.
+Multi-user: each **User** owns categories, settings, and (via categories) expenses, recurring templates, and wishlist items. Passwords are stored as **bcrypt** hashes only.
 
-## AppSettings
-
-Singleton row (`id = 1`).
+## User
 
 | Field | Type | Description |
 |-------|------|-------------|
-| id | Int | Fixed `1` |
-| currencyCode | String | ISO 4217 code; default **THB** |
+| id | String (cuid) | Primary key |
+| username | String | Unique, stored lowercase |
+| passwordHash | String | bcrypt hash |
+| createdAt / updatedAt | DateTime | UTC |
+
+## Session
+
+Opaque **token** in httpOnly cookie (`budget_session`); row tracks expiry (30 days). Used to resolve `userId` on each API request. All sessions for a user are deleted on password change.
+
+| Field | Type | Description |
+|-------|------|-------------|
+| id | String (cuid) | Primary key |
+| userId | String | FK → User |
+| token | String | Unique random string |
+| expiresAt | DateTime | UTC |
+
+## AppSettings
+
+One row per user (`userId` primary key).
+
+| Field | Type | Description |
+|-------|------|-------------|
+| userId | String | PK, FK → User |
+| currencyCode | String | ISO 4217; default **THB** |
+| domainName | String | Optional PWA / tunnel hint |
 
 ## Category
 
 | Field | Type | Description |
 |-------|------|-------------|
 | id | String (cuid) | Primary key |
+| userId | String | FK → User (scopes all child data) |
 | name | String | Display name |
 | color | String? | Optional hex for UI |
 | sortOrder | Int | Display order (lower first) |
@@ -36,6 +58,7 @@ One monthly budget cap per category (same amount every month). Actual spend for 
 | Field | Type | Description |
 |-------|------|-------------|
 | id | String (cuid) | Primary key |
+| name | String | Short label |
 | categoryId | String | FK → Category |
 | amount | Decimal | Positive spend |
 | date | Date | Calendar date only (no time); drives month grouping |
@@ -55,6 +78,7 @@ Template for a bill; does not store per-month state.
 | name | String | Label for dashboard button |
 | categoryId | String | FK → Category |
 | defaultAmount | Decimal? | Suggested amount when logging |
+| isCommon | Boolean | If true, multiple expenses per month allowed |
 | sortOrder | Int | Button order |
 | createdAt | DateTime | UTC |
 

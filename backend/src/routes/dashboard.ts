@@ -1,31 +1,41 @@
 import { Router } from "express";
 import { isValidMonth, monthUtcRange } from "../lib/dates.js";
 import { prisma } from "../lib/prisma.js";
+import { userId } from "../lib/userScope.js";
 import { HttpError } from "../middleware/httpError.js";
 
 export const dashboardRouter = Router();
 
 dashboardRouter.get("/", async (req, res, next) => {
   try {
+    const uid = userId(req);
     const month = req.query.month as string;
     if (!month || !isValidMonth(month)) {
       throw new HttpError(400, "Query month=YYYY-MM is required");
     }
     const { start, endExclusive } = monthUtcRange(month);
-    const settings = await prisma.appSettings.upsert({
-      where: { id: 1 },
-      create: { id: 1, currencyCode: "THB" },
+
+    await prisma.appSettings.upsert({
+      where: { userId: uid },
+      create: { userId: uid, currencyCode: "THB", domainName: "" },
       update: {},
+    });
+    const settings = await prisma.appSettings.findUniqueOrThrow({
+      where: { userId: uid },
     });
 
     const categories = await prisma.category.findMany({
+      where: { userId: uid },
       include: { budget: true },
       orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
     });
 
     const agg = await prisma.expense.groupBy({
       by: ["categoryId"],
-      where: { date: { gte: start, lt: endExclusive } },
+      where: {
+        date: { gte: start, lt: endExclusive },
+        category: { userId: uid },
+      },
       _sum: { amount: true },
     });
     const actualByCat = new Map(
@@ -41,7 +51,10 @@ dashboardRouter.get("/", async (req, res, next) => {
     }
 
     const monthExpenses = await prisma.expense.findMany({
-      where: { date: { gte: start, lt: endExclusive } },
+      where: {
+        date: { gte: start, lt: endExclusive },
+        category: { userId: uid },
+      },
       select: { date: true, amount: true },
     });
     const dailyMap = new Map<string, number>();

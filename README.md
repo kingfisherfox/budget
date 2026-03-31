@@ -1,118 +1,87 @@
 # Budget
 
-**Budget** is a lightweight spend tracker built for ease of use — mobile-first, fast logging, budgets, and recurring/common spends. Built with React, Node.js, Express, and PostgreSQL.
-
-On phones, open the site in the browser and use **Add to Home Screen** / **Install app**; metadata is in `frontend/index.html`, `frontend/public/manifest.webmanifest`, and a **minimal** `frontend/public/sw.js` (network-only — no asset caching) so Chromium can treat the app as installable. Replace `frontend/public/img/icon.png` with your own 512×512 (or larger square) PNG for the home-screen icon. When the device is offline, the app shows a clear message that a connection is required (data is not stored offline).
+**Budget** is a lightweight, mobile-first spend tracker: quick logging, category budgets, recurring and “common” spends, wishlist → expense, and dashboard charts. Stack: **React 19 + Vite + Tailwind** (frontend), **Express + Prisma + PostgreSQL** (backend).
 
 ## Features
 
-- **Fast Expense Logging**: Quick add button for rapid entry, plus a dedicated "Common Spend" feature for frequently bought items (like coffee or transport) that you can log with a single click.
-- **Recurring Expenses**: Set up monthly bills (rent, subscriptions) and log them with one click. They automatically hide once paid for the month.
-- **Category Budgeting**: Set monthly budgets for different categories and track your actual spend against them.
-- **Visual Dashboards**: See your daily spend in a bar chart and your category breakdowns in a vibrant pie chart.
-- **Wishlist**: Save items you want to buy later. When you're ready, convert them directly into expenses.
-- **Multi-Currency Support**: Choose your preferred currency from the settings.
-- **Mobile-First Design**: Clean, sharp, modern UI optimized for use on your phone.
-- **PWA / installable**: Web app manifest + minimal service worker + install banner so the app can open in standalone mode like an app; offline usage shows an in-app message instead of caching data for later sync.
+- **Accounts** — Username / password (bcrypt). Session cookie `budget_session`. Sign up or log in at **`/account`** when the app redirects you; **Settings → Account** has change password and **Log out**.
+- **Per-user data** — Categories, expenses, recurring templates, wishlist, and app settings (currency, domain hint) are scoped to the logged-in user.
+- **Dashboard** — Month selector, budget vs actual, daily spend chart, category breakdown (Recharts), quick-add and recurring/common buttons.
+- **Expenses** — Month-filtered list with edit/delete; compact rows on small screens.
+- **Wishlist** — Save items; **Purchase** creates an expense and removes the item.
+- **Settings** — Currency, domain name (PWA/tunnel hint), categories + budgets, recurring/common templates, account card (password + logout).
+- **PWA** — `manifest.webmanifest`, `icon-192.png` / `icon-512.png`, minimal `sw.js` (network-only fetch). Install banner + browser-specific hints. See [`docs/ui-pages.md`](docs/ui-pages.md).
 
----
+## Documentation
 
-## Architecture & Tech Stack
-
-- **Frontend**: React 19, TypeScript, Vite, Tailwind CSS v4, Recharts.
-- **Backend**: Node.js, Express, TypeScript, Zod (for validation).
-- **Database**: PostgreSQL with Prisma ORM.
-- **Deployment**: Fully containerized using Docker and Docker Compose (Nginx for frontend, Node for API, Postgres for DB).
-
----
+| Doc | Purpose |
+|-----|---------|
+| **[docs/README.md](docs/README.md)** | Index of all docs |
+| [docs/api.md](docs/api.md) | HTTP API |
+| [docs/entities.md](docs/entities.md) | Database models |
+| [docs/ui-pages.md](docs/ui-pages.md) | Routes, PWA, UI structure |
+| [docs/deployment.md](docs/deployment.md) | Docker, env, migrations, tests, proxies |
 
 ## Prerequisites
 
-To run this application locally, you need to have the following installed on your machine:
-- [Docker](https://docs.docker.com/get-docker/)
-- [Docker Compose](https://docs.docker.com/compose/install/)
+- [Docker](https://docs.docker.com/get-docker/) and Docker Compose (for the recommended dev path), **or** Node 22+, Postgres 16, and npm for local `backend` / `frontend` dev.
 
----
+## Quick start (Docker Compose)
 
-## Installation & Setup
-
-1. **Clone or download the repository** to your local machine.
-2. **Open a terminal** and navigate to the root directory of the project (where the `docker-compose.yml` file is located).
-3. **Start the application** using Docker Compose:
+From the repo root (where `docker-compose.yml` lives):
 
 ```bash
-docker compose up --build
+docker compose up
 ```
 
-*Note: The first time you run this, it will take a few minutes to download the necessary Docker images, install dependencies, and build the frontend and backend.*
+On first run after **dependency changes**, images may need rebuilding: `docker compose up --build`. Dev containers run **`npm install`** on start so `node_modules` volumes stay aligned with `package.json` (see [docs/deployment.md](docs/deployment.md)).
 
-4. **Access the application**:
-   - Open your web browser and go to: `http://localhost:8081`
-   - Only the **web** container is published to your machine. The API and database are internal to Docker; the Vite dev server proxies `/api` to the API service, so the app works through that single URL.
+- **App:** http://localhost:8081 — Vite proxies `/api` to the API inside the compose network.
+- **Postgres:** port **5432** published to the host for local Prisma/tests.
 
-5. **Stopping the application**:
-   - Press `Ctrl+C` in the terminal where Docker Compose is running.
-   - Or, run `docker compose down` in another terminal window.
+Stop: `Ctrl+C` or `docker compose down`.
 
----
+### After upgrading from pre-auth databases
 
-## How to Use the App
+Migration `20260331124500_add_users_sessions_scoping` creates user **`owner`** / password **`password123`**. Sign in, then **change the password** under Settings → Account. Empty databases can use **Sign up** on `/account` instead. Details: [docs/deployment.md](docs/deployment.md).
 
-### 1. Initial Setup (Settings Page)
-When you first open the app, head to the **Settings** page (using the bottom navigation bar).
-- **Set Currency**: Choose your preferred currency from the dropdown.
-- **Create Categories**: Add categories for your spending (e.g., "Food", "Transport", "Bills").
-- **Set Budgets**: Enter a monthly budget amount next to each category and click "Save budget".
+## Project layout
 
-### 2. Setting up Recurring & Common Spends
-Also on the Settings page, you can set up templates for quick logging.
-- **Recurring Expenses**: Add items like "Rent" or "Netflix". These appear on your dashboard. Once you log them for the current month, they are marked as "Done" and disabled to prevent double-charging.
-- **Common Spends**: Check the "Common spend" box for things you buy often (like "Coffee" or "Train ticket"). These get a special `COMMON` tag on the dashboard and *never* disable—you can click them as many times as you want to quickly log those expenses.
-
-### 3. Logging Expenses
-There are three ways to log an expense:
-1. **Quick Add**: Click the `+ Add` button at the top right of the Dashboard. Select a category, enter a name, amount, and optional note.
-2. **Recurring/Common Section**: On the Dashboard, click any item in the "Recurring / Common" grid. Confirm the amount and click "Log Expense".
-3. **From Wishlist**: On the Wishlist page, click "Purchased" on any item to convert it into an actual expense.
-
-### 4. Viewing Your Data
-- **Dashboard**: Shows your total budget vs. actual spend, a bar chart of your daily spending, and a pie chart breaking down your spend by category.
-- **Expenses Page**: Shows a detailed, day-by-day list of all transactions for the selected month. You can edit or delete expenses here.
-
-### 5. Managing Months
-Use the month selector at the very top of the screen (e.g., `< March 2026 >`) to navigate back and forth in time. The dashboard, expenses list, and recurring status will automatically update to reflect the selected month.
-
----
-
-## Development Guide
-
-If you want to modify the code:
-
-### Project Structure
-- `/frontend`: React application (Vite).
-- `/backend`: Node.js/Express API.
-- `/backend/prisma`: Database schema and migrations.
-- `/docs`: Internal documentation (API specs, entity models).
-
-### Hot Reloading
-The `docker-compose.yml` is configured for local development. When you run `docker compose up`, it mounts your local directories into the containers. 
-- Any changes you make to the `/frontend` code will automatically hot-reload in your browser.
-- Any changes you make to the `/backend` code will automatically restart the Express server.
-
-### Database Migrations
-If you modify the `backend/prisma/schema.prisma` file, you need to create a migration.
-1. Open a terminal inside the `backend` folder.
-2. Run the migration command:
-```bash
-DATABASE_URL="postgresql://postgres:postgres@localhost:5432/expenses" npx prisma migrate dev --name your_migration_name
 ```
-*(Ensure your Docker containers are running so the database is accessible).*
+├── backend/          # Express API, Prisma schema & migrations
+├── frontend/         # Vite React app
+├── docs/             # API, entities, UI, deployment (source of truth)
+├── scripts/          # db-migrate.sh, generate-pwa-icons.sh (+ .gitignore for local junk)
+├── tests/            # API integration tests (+ .gitignore for coverage/tmp)
+├── docker-compose.yml
+└── README.md
+```
 
-### Running Tests
-Integration tests are located in the `/tests` folder. They test the API endpoints against a real database.
-To run them:
+## Local dev without Docker (summary)
+
+1. Postgres running; `DATABASE_URL` in `backend/.env`.
+2. `cd backend && npm install && npx prisma migrate dev && npm run dev`
+3. `cd frontend && npm install && npm run dev` — Vite defaults proxy `/api` to `http://localhost:4000`.
+
+## Tests
+
+Wipes data in `beforeEach` — **never** point at production.
+
 ```bash
 cd backend
-DATABASE_URL="postgresql://postgres:postgres@localhost:5432/expenses" npm run test
+DATABASE_URL="postgresql://postgres:postgres@localhost:5432/expenses" npm test
 ```
-*(Warning: The test script resets the database before running. Do not run tests against your production database).*
+
+## Git ignore: `scripts/` and `tests/`
+
+Root [`.gitignore`](.gitignore) and per-folder [`scripts/.gitignore`](scripts/.gitignore) / [`tests/.gitignore`](tests/.gitignore) ignore **local outputs and overrides only** (e.g. `*.local.*`, `coverage/`, `tmp/`, logs). **Committed** files such as `scripts/db-migrate.sh`, `scripts/generate-pwa-icons.sh`, and `tests/api.test.ts` remain tracked.
+
+## Production notes
+
+- Serve the **built** frontend (`frontend/dist`) and reverse-proxy **`/api`** to the Node API, forwarding **cookies** for auth.
+- Run `npx prisma migrate deploy` before or on API startup.
+- Use HTTPS in production; set `NODE_ENV=production` so cookies get the `Secure` flag where appropriate.
+
+---
+
+For deep detail, start at **[docs/README.md](docs/README.md)**.

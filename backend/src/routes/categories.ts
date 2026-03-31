@@ -2,6 +2,7 @@ import { Router } from "express";
 import { z } from "zod";
 import { prisma } from "../lib/prisma.js";
 import { dec } from "../lib/serialize.js";
+import { userId } from "../lib/userScope.js";
 import { HttpError } from "../middleware/httpError.js";
 
 const createSchema = z.object({
@@ -38,9 +39,11 @@ function mapCategory(c: CatRow) {
   };
 }
 
-categoriesRouter.get("/", async (_req, res, next) => {
+categoriesRouter.get("/", async (req, res, next) => {
   try {
+    const uid = userId(req);
     const rows = await prisma.category.findMany({
+      where: { userId: uid },
       include: { budget: true },
       orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
     });
@@ -56,11 +59,13 @@ categoriesRouter.post("/", async (req, res, next) => {
     if (!parsed.success) {
       throw new HttpError(400, "Validation failed", { errors: parsed.error.flatten() });
     }
+    const uid = userId(req);
     const c = await prisma.category.create({
       data: {
         name: parsed.data.name,
         color: parsed.data.color ?? undefined,
         sortOrder: parsed.data.sortOrder ?? 0,
+        userId: uid,
       },
       include: { budget: true },
     });
@@ -76,7 +81,10 @@ categoriesRouter.put("/:id/budget", async (req, res, next) => {
     if (!parsed.success) {
       throw new HttpError(400, "Validation failed", { errors: parsed.error.flatten() });
     }
-    await prisma.category.findUniqueOrThrow({ where: { id: req.params.id } });
+    const uid = userId(req);
+    await prisma.category.findFirstOrThrow({
+      where: { id: req.params.id, userId: uid },
+    });
     const b = await prisma.categoryBudget.upsert({
       where: { categoryId: req.params.id },
       create: {
@@ -97,6 +105,11 @@ categoriesRouter.patch("/:id", async (req, res, next) => {
     if (!parsed.success) {
       throw new HttpError(400, "Validation failed", { errors: parsed.error.flatten() });
     }
+    const uid = userId(req);
+    const found = await prisma.category.findFirst({
+      where: { id: req.params.id, userId: uid },
+    });
+    if (!found) throw new HttpError(404, "Category not found");
     const c = await prisma.category.update({
       where: { id: req.params.id },
       data: {
@@ -113,6 +126,11 @@ categoriesRouter.patch("/:id", async (req, res, next) => {
 
 categoriesRouter.delete("/:id", async (req, res, next) => {
   try {
+    const uid = userId(req);
+    const cat = await prisma.category.findFirst({
+      where: { id: req.params.id, userId: uid },
+    });
+    if (!cat) throw new HttpError(404, "Category not found");
     const count = await prisma.expense.count({ where: { categoryId: req.params.id } });
     if (count > 0) {
       throw new HttpError(409, "Category has expenses; reassign or delete expenses first");

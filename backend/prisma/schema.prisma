@@ -7,10 +7,32 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+model User {
+  id           String   @id @default(cuid())
+  username     String   @unique
+  passwordHash String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  sessions     Session[]
+  categories   Category[]
+  appSettings  AppSettings?
+}
+
+model Session {
+  id        String   @id @default(cuid())
+  userId    String
+  token     String   @unique
+  expiresAt DateTime
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
 model AppSettings {
-  id           Int    @id @default(1)
+  userId       String @id
   currencyCode String @default("THB")
   domainName   String @default("")
+  user         User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model Category {
@@ -19,6 +41,8 @@ model Category {
   color      String?
   sortOrder  Int      @default(0)
   createdAt  DateTime @default(now())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   budget     CategoryBudget?
   expenses   Expense[]
   recurring  RecurringExpense[]

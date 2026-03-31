@@ -2,16 +2,31 @@
 
 Base path: `/api`. JSON bodies and responses unless noted.
 
+**Health (no auth):** `GET /health` → `{ ok: true }` (root server path, not under `/api`).
+
+**Authentication:** Session cookie `budget_session` (httpOnly, `SameSite=Lax`). All routes except `/api/auth/*` public handlers require a valid session. The SPA sends `credentials: "include"` on `fetch`.
+
+**CORS:** API uses `credentials: true` and reflected `Origin` so cookies work when frontend and API are on different origins during dev.
+
 ## Errors
 
 - `400` — validation error; body `{ "error": string }` or `{ "errors": Record<string, string[]> }`
+- `401` — not authenticated (missing/invalid session)
 - `404` — resource not found
 - `409` — conflict (e.g. duplicate recurring payment for same month)
 
+## Auth
+
+- `GET /api/auth/me` — `{ user: { id, username } | null }` (no cookie → `user: null`)
+- `POST /api/auth/signup` body `{ username, password }` — username 3–64 chars `[a-zA-Z0-9_-]+`, password 8–128 chars; creates user + default `AppSettings`; `201` + `Set-Cookie` + `{ user }`
+- `POST /api/auth/login` body `{ username, password }` — `200` + cookie + `{ user }`; `401` if invalid
+- `POST /api/auth/logout` — clears server session + cookie; `204`
+- `POST /api/auth/change-password` (authenticated) body `{ currentPassword, newPassword }` — bcrypt update, **revokes all sessions**, clears cookie; `200` `{ ok, message }`; client should send user to login again
+
 ## App settings
 
-- `GET /api/app-settings` → `{ id, currencyCode }`
-- `PATCH /api/app-settings` body `{ currencyCode: string }` → updated row
+- `GET /api/app-settings` → `{ userId, currencyCode, domainName }`
+- `PATCH /api/app-settings` body `{ currencyCode?, domainName? }` → updated row
 
 ## Categories
 
@@ -29,16 +44,16 @@ Base path: `/api`. JSON bodies and responses unless noted.
 - `GET /api/expenses?month=YYYY-MM` — expenses in that month, ordered by `date` desc, then `createdAt` desc. Each item includes `category: { id, name }`.
 - `GET /api/expenses/:id` — single expense with category
 - `POST /api/expenses` body:
-  - `categoryId`, `amount`, `date` (ISO date string `YYYY-MM-DD`), `note?`
-  - `recurringExpenseId?` — if set, `date` must fall in one month; **at most one** expense per `(recurringExpenseId, calendar month)`; `categoryId` should match template’s category (server may enforce)
-- `PATCH /api/expenses/:id` body partial `{ categoryId?, amount?, date?, note? }` — if changing `recurringExpenseId` month conflict, reject 409
+  - `categoryId`, `amount`, `date` (ISO date string `YYYY-MM-DD`), `name?`, `note?`
+  - `recurringExpenseId?` — if set, `date` must fall in one month; **at most one** expense per `(recurringExpenseId, calendar month)` unless template `isCommon`; `categoryId` must match template’s category
+- `PATCH /api/expenses/:id` body partial `{ categoryId?, amount?, date?, name?, note? }` — if changing `recurringExpenseId` month conflict, reject 409
 - `DELETE /api/expenses/:id`
 
 ## Recurring expense templates
 
 - `GET /api/recurring-expenses` — all templates with `category`
-- `POST /api/recurring-expenses` body `{ name, categoryId, defaultAmount?, sortOrder? }`
-- `PATCH /api/recurring-expenses/:id` partial
+- `POST /api/recurring-expenses` body `{ name, categoryId, defaultAmount?, isCommon?, sortOrder? }`
+- `PATCH /api/recurring-expenses/:id` partial `{ name?, categoryId?, defaultAmount?, isCommon?, sortOrder? }`
 - `DELETE /api/recurring-expenses/:id`
 
 ### Status for dashboard

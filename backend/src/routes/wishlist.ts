@@ -3,6 +3,7 @@ import { z } from "zod";
 import { isValidISODate, parseISODateUtc, todayISODateUtc } from "../lib/dates.js";
 import { prisma } from "../lib/prisma.js";
 import { dec } from "../lib/serialize.js";
+import { userId } from "../lib/userScope.js";
 import { HttpError } from "../middleware/httpError.js";
 
 const createSchema = z.object({
@@ -39,9 +40,11 @@ function mapItem(
   };
 }
 
-wishlistRouter.get("/", async (_req, res, next) => {
+wishlistRouter.get("/", async (req, res, next) => {
   try {
+    const uid = userId(req);
     const rows = await prisma.wishlistItem.findMany({
+      where: { category: { userId: uid } },
       include: { category: { select: { id: true, name: true } } },
       orderBy: { createdAt: "desc" },
     });
@@ -53,11 +56,14 @@ wishlistRouter.get("/", async (_req, res, next) => {
 
 wishlistRouter.post("/", async (req, res, next) => {
   try {
+    const uid = userId(req);
     const parsed = createSchema.safeParse(req.body);
     if (!parsed.success) {
       throw new HttpError(400, "Validation failed", { errors: parsed.error.flatten() });
     }
-    await prisma.category.findUniqueOrThrow({ where: { id: parsed.data.categoryId } });
+    await prisma.category.findFirstOrThrow({
+      where: { id: parsed.data.categoryId, userId: uid },
+    });
     const row = await prisma.wishlistItem.create({
       data: {
         name: parsed.data.name,
@@ -75,12 +81,19 @@ wishlistRouter.post("/", async (req, res, next) => {
 
 wishlistRouter.patch("/:id", async (req, res, next) => {
   try {
+    const uid = userId(req);
     const parsed = patchSchema.safeParse(req.body);
     if (!parsed.success) {
       throw new HttpError(400, "Validation failed", { errors: parsed.error.flatten() });
     }
+    const existing = await prisma.wishlistItem.findFirst({
+      where: { id: req.params.id, category: { userId: uid } },
+    });
+    if (!existing) throw new HttpError(404, "Wishlist item not found");
     if (parsed.data.categoryId) {
-      await prisma.category.findUniqueOrThrow({ where: { id: parsed.data.categoryId } });
+      await prisma.category.findFirstOrThrow({
+        where: { id: parsed.data.categoryId, userId: uid },
+      });
     }
     const row = await prisma.wishlistItem.update({
       where: { id: req.params.id },
@@ -100,6 +113,11 @@ wishlistRouter.patch("/:id", async (req, res, next) => {
 
 wishlistRouter.delete("/:id", async (req, res, next) => {
   try {
+    const uid = userId(req);
+    const existing = await prisma.wishlistItem.findFirst({
+      where: { id: req.params.id, category: { userId: uid } },
+    });
+    if (!existing) throw new HttpError(404, "Wishlist item not found");
     await prisma.wishlistItem.delete({ where: { id: req.params.id } });
     res.status(204).send();
   } catch (e) {
@@ -109,12 +127,13 @@ wishlistRouter.delete("/:id", async (req, res, next) => {
 
 wishlistRouter.post("/:id/purchase", async (req, res, next) => {
   try {
+    const uid = userId(req);
     const parsed = purchaseSchema.safeParse(req.body);
     if (!parsed.success) {
       throw new HttpError(400, "Validation failed", { errors: parsed.error.flatten() });
     }
-    const item = await prisma.wishlistItem.findUnique({
-      where: { id: req.params.id },
+    const item = await prisma.wishlistItem.findFirst({
+      where: { id: req.params.id, category: { userId: uid } },
     });
     if (!item) throw new HttpError(404, "Wishlist item not found");
 

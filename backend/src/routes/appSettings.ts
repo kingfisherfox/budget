@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { z } from "zod";
 import { prisma } from "../lib/prisma.js";
+import { userId } from "../lib/userScope.js";
 import { HttpError } from "../middleware/httpError.js";
 
 const patchSchema = z.object({
@@ -10,18 +11,19 @@ const patchSchema = z.object({
 
 export const appSettingsRouter = Router();
 
-async function ensureSettings() {
+async function ensureSettings(uid: string) {
   await prisma.appSettings.upsert({
-    where: { id: 1 },
-    create: { id: 1, currencyCode: "THB" },
+    where: { userId: uid },
+    create: { userId: uid, currencyCode: "THB", domainName: "" },
     update: {},
   });
 }
 
-appSettingsRouter.get("/", async (_req, res, next) => {
+appSettingsRouter.get("/", async (req, res, next) => {
   try {
-    await ensureSettings();
-    const row = await prisma.appSettings.findUniqueOrThrow({ where: { id: 1 } });
+    const uid = userId(req);
+    await ensureSettings(uid);
+    const row = await prisma.appSettings.findUniqueOrThrow({ where: { userId: uid } });
     res.json(row);
   } catch (e) {
     next(e);
@@ -34,9 +36,10 @@ appSettingsRouter.patch("/", async (req, res, next) => {
     if (!parsed.success) {
       throw new HttpError(400, "Validation failed", { errors: parsed.error.flatten() });
     }
-    await ensureSettings();
+    const uid = userId(req);
+    await ensureSettings(uid);
     const row = await prisma.appSettings.update({
-      where: { id: 1 },
+      where: { userId: uid },
       data: {
         currencyCode: parsed.data.currencyCode,
         domainName: parsed.data.domainName,

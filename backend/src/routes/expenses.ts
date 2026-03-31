@@ -9,6 +9,7 @@ import {
 } from "../lib/dates.js";
 import { prisma } from "../lib/prisma.js";
 import { dec } from "../lib/serialize.js";
+import { userId } from "../lib/userScope.js";
 import { HttpError } from "../middleware/httpError.js";
 
 const createSchema = z.object({
@@ -49,6 +50,7 @@ function mapExpense(
 }
 
 async function assertRecurringMonthUnique(
+  uid: string,
   recurringExpenseId: string,
   expenseDate: Date
 ): Promise<void> {
@@ -58,6 +60,7 @@ async function assertRecurringMonthUnique(
     where: {
       recurringExpenseId,
       date: { gte: start, lt: endExclusive },
+      category: { userId: uid },
     },
   });
   if (existing) {
@@ -65,15 +68,26 @@ async function assertRecurringMonthUnique(
   }
 }
 
+async function assertCategoryOwned(uid: string, categoryId: string): Promise<void> {
+  const c = await prisma.category.findFirst({
+    where: { id: categoryId, userId: uid },
+  });
+  if (!c) throw new HttpError(400, "Category not found");
+}
+
 expensesRouter.get("/", async (req, res, next) => {
   try {
+    const uid = userId(req);
     const month = req.query.month as string;
     if (!month || !isValidMonth(month)) {
       throw new HttpError(400, "Query month=YYYY-MM is required");
     }
     const { start, endExclusive } = monthUtcRange(month);
     const rows = await prisma.expense.findMany({
-      where: { date: { gte: start, lt: endExclusive } },
+      where: {
+        date: { gte: start, lt: endExclusive },
+        category: { userId: uid },
+      },
       include: { category: { select: { id: true, name: true } } },
       orderBy: [{ date: "desc" }, { createdAt: "desc" }],
     });
@@ -85,8 +99,9 @@ expensesRouter.get("/", async (req, res, next) => {
 
 expensesRouter.get("/:id", async (req, res, next) => {
   try {
-    const row = await prisma.expense.findUnique({
-      where: { id: req.params.id },
+    const uid = userId(req);
+    const row = await prisma.expense.findFirst({
+      where: { id: req.params.id, category: { userId: uid } },
       include: { category: { select: { id: true, name: true } } },
     });
     if (!row) throw new HttpError(404, "Expense not found");
@@ -98,6 +113,7 @@ expensesRouter.get("/:id", async (req, res, next) => {
 
 expensesRouter.post("/", async (req, res, next) => {
   try {
+    const uid = userId(req);
     const parsed = createSchema.safeParse(req.body);
     if (!parsed.success) {
       throw new HttpError(400, "Validation failed", { errors: parsed.error.flatten() });
@@ -106,19 +122,21 @@ expensesRouter.post("/", async (req, res, next) => {
       throw new HttpError(400, "Invalid date; use YYYY-MM-DD");
     }
     const d = parseISODateUtc(parsed.data.date);
-    let categoryId = parsed.data.categoryId;
-    let recurringExpenseId = parsed.data.recurringExpenseId ?? undefined;
+    const categoryId = parsed.data.categoryId;
+    const recurringExpenseId = parsed.data.recurringExpenseId ?? undefined;
+
+    await assertCategoryOwned(uid, categoryId);
 
     if (recurringExpenseId) {
-      const rec = await prisma.recurringExpense.findUnique({
-        where: { id: recurringExpenseId },
+      const rec = await prisma.recurringExpense.findFirst({
+        where: { id: recurringExpenseId, category: { userId: uid } },
       });
       if (!rec) throw new HttpError(400, "Recurring expense not found");
       if (rec.categoryId !== categoryId) {
         throw new HttpError(400, "categoryId must match recurring template category");
       }
       if (!rec.isCommon) {
-        await assertRecurringMonthUnique(recurringExpenseId, d);
+        await assertRecurringMonthUnique(uid, recurringExpenseId, d);
       }
     }
 
@@ -141,12 +159,19 @@ expensesRouter.post("/", async (req, res, next) => {
 
 expensesRouter.patch("/:id", async (req, res, next) => {
   try {
+    const uid = userId(req);
     const parsed = patchSchema.safeParse(req.body);
     if (!parsed.success) {
       throw new HttpError(400, "Validation failed", { errors: parsed.error.flatten() });
     }
-    const current = await prisma.expense.findUnique({ where: { id: req.params.id } });
+    const current = await prisma.expense.findFirst({
+      where: { id: req.params.id, category: { userId: uid } },
+    });
     if (!current) throw new HttpError(404, "Expense not found");
+
+    if (parsed.data.categoryId) {
+      await assertCategoryOwned(uid, parsed.data.categoryId);
+    }
 
     const nextDate = parsed.data.date
       ? isValidISODate(parsed.data.date)
@@ -160,19 +185,22 @@ expensesRouter.patch("/:id", async (req, res, next) => {
     const recurringId = current.recurringExpenseId;
 
     if (recurringId && (parsed.data.date || parsed.data.categoryId)) {
-      const rec = await prisma.recurringExpense.findUnique({ where: { id: recurringId } });
+      const rec = await prisma.recurringExpense.findFirst({
+        where: { id: recurringId, category: { userId: uid } },
+      });
       if (rec) {
         const cat = parsed.data.categoryId ?? current.categoryId;
         if (cat !== rec.categoryId) {
           throw new HttpError(400, "categoryId must match recurring template category");
         }
         if (!rec.isCommon) {
-          const month = monthFromISODate(dateVal.toISOString().slice(0, 10));
-          const { start, endExclusive } = monthUtcRange(month);
+          const m = monthFromISODate(dateVal.toISOString().slice(0, 10));
+          const { start, endExclusive } = monthUtcRange(m);
           const clash = await prisma.expense.findFirst({
             where: {
               recurringExpenseId: recurringId,
               date: { gte: start, lt: endExclusive },
+              category: { userId: uid },
               NOT: { id: current.id },
             },
           });
@@ -202,7 +230,10 @@ expensesRouter.patch("/:id", async (req, res, next) => {
 
 expensesRouter.delete("/:id", async (req, res, next) => {
   try {
-    const found = await prisma.expense.findUnique({ where: { id: req.params.id } });
+    const uid = userId(req);
+    const found = await prisma.expense.findFirst({
+      where: { id: req.params.id, category: { userId: uid } },
+    });
     if (!found) throw new HttpError(404, "Expense not found");
     await prisma.expense.delete({ where: { id: req.params.id } });
     res.status(204).send();

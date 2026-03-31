@@ -7,21 +7,26 @@ const prisma = new PrismaClient();
 const app = createApp();
 
 async function resetDb() {
+  await prisma.session.deleteMany();
   await prisma.expense.deleteMany();
   await prisma.wishlistItem.deleteMany();
   await prisma.recurringExpense.deleteMany();
   await prisma.categoryBudget.deleteMany();
   await prisma.category.deleteMany();
-  await prisma.appSettings.upsert({
-    where: { id: 1 },
-    create: { id: 1, currencyCode: "THB" },
-    update: { currencyCode: "THB" },
-  });
+  await prisma.appSettings.deleteMany();
+  await prisma.user.deleteMany();
 }
 
 describe("API integration", () => {
+  let agent: request.Agent;
+
   beforeEach(async () => {
     await resetDb();
+    agent = request.agent(app);
+    await agent
+      .post("/api/auth/signup")
+      .send({ username: "testuser", password: "password123" })
+      .expect(201);
   });
 
   afterAll(async () => {
@@ -29,18 +34,12 @@ describe("API integration", () => {
   });
 
   it("creates category, budget, expense and returns dashboard aggregates", async () => {
-    const cat = await request(app)
-      .post("/api/categories")
-      .send({ name: "Food" })
-      .expect(201);
+    const cat = await agent.post("/api/categories").send({ name: "Food" }).expect(201);
     const id = cat.body.id as string;
 
-    await request(app)
-      .put(`/api/categories/${id}/budget`)
-      .send({ monthlyAmount: 1000 })
-      .expect(200);
+    await agent.put(`/api/categories/${id}/budget`).send({ monthlyAmount: 1000 }).expect(200);
 
-    await request(app)
+    await agent
       .post("/api/expenses")
       .send({
         name: "lunch",
@@ -51,9 +50,7 @@ describe("API integration", () => {
       })
       .expect(201);
 
-    const dash = await request(app)
-      .get("/api/dashboard?month=2026-03")
-      .expect(200);
+    const dash = await agent.get("/api/dashboard?month=2026-03").expect(200);
     expect(dash.body.totals.actual).toBe(250);
     expect(dash.body.totals.budget).toBe(1000);
     const row = dash.body.categories.find(
@@ -64,19 +61,16 @@ describe("API integration", () => {
   });
 
   it("rejects duplicate recurring payment in same month", async () => {
-    const cat = await request(app)
-      .post("/api/categories")
-      .send({ name: "Bills" })
-      .expect(201);
+    const cat = await agent.post("/api/categories").send({ name: "Bills" }).expect(201);
     const cid = cat.body.id as string;
 
-    const rec = await request(app)
+    const rec = await agent
       .post("/api/recurring-expenses")
       .send({ name: "Rent", categoryId: cid, defaultAmount: 500 })
       .expect(201);
     const rid = rec.body.id as string;
 
-    await request(app)
+    await agent
       .post("/api/expenses")
       .send({
         name: "Rent",
@@ -87,7 +81,7 @@ describe("API integration", () => {
       })
       .expect(201);
 
-    const dup = await request(app)
+    const dup = await agent
       .post("/api/expenses")
       .send({
         name: "Rent",
@@ -101,29 +95,31 @@ describe("API integration", () => {
   });
 
   it("wishlist purchase creates expense and removes item", async () => {
-    const cat = await request(app)
-      .post("/api/categories")
-      .send({ name: "Fun" })
-      .expect(201);
+    const cat = await agent.post("/api/categories").send({ name: "Fun" }).expect(201);
     const cid = cat.body.id as string;
 
-    const wl = await request(app)
+    const wl = await agent
       .post("/api/wishlist")
       .send({ name: "Game", categoryId: cid, amount: 60 })
       .expect(201);
     const wid = wl.body.id as string;
 
-    const pur = await request(app)
+    const pur = await agent
       .post(`/api/wishlist/${wid}/purchase`)
       .send({ amount: 55, date: "2026-03-10" })
       .expect(201);
     expect(pur.body.expense.amount).toBe("55");
 
-    const list = await request(app).get("/api/wishlist").expect(200);
+    const list = await agent.get("/api/wishlist").expect(200);
     expect(list.body).toHaveLength(0);
 
-    const ex = await request(app).get("/api/expenses?month=2026-03").expect(200);
+    const ex = await agent.get("/api/expenses?month=2026-03").expect(200);
     expect(ex.body).toHaveLength(1);
     expect(ex.body[0].amount).toBe("55");
+  });
+
+  it("returns 401 for protected routes without session", async () => {
+    await resetDb();
+    await request(app).get("/api/categories").expect(401);
   });
 });
