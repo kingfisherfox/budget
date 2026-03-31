@@ -51,8 +51,8 @@ export function AccountPage() {
         <h1 className="text-lg font-bold text-slate-900">Budget</h1>
         <p className="mt-1 text-sm text-slate-500">
           {mode === "signup"
-            ? "Create an account — saved to PostgreSQL with a hashed password (bcrypt)."
-            : "Sign in — username and password are checked against your User row in the database."}
+            ? "Create an account to start managing your budget."
+            : "Sign in to your account to continue."}
         </p>
 
         <div className="mt-4 flex gap-2 border-b border-slate-100 pb-px">
