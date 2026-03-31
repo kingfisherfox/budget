@@ -2,15 +2,19 @@ import { useCallback, useEffect, useState } from "react";
 import { apiDelete, apiGet, apiPost, apiPut, apiPatch } from "../api/client";
 import type { Category, RecurringTemplate } from "../api/types";
 import { useCurrency } from "../context/CurrencyContext";
+import { useAuth } from "../context/AuthContext";
 import { SettingsCategoriesSection } from "../settings/SettingsCategoriesSection";
 import { SettingsAccountSection } from "../settings/SettingsAccountSection";
 import { SettingsRecurringSection } from "../settings/SettingsRecurringSection";
+import { SettingsAdminSection } from "../settings/SettingsAdminSection";
 import { CURRENCY_CODES } from "../settings/currencies";
 
 export function SettingsPage() {
+  const { user } = useAuth();
   const { currencyCode, setCurrency } = useCurrency();
   const [domainName, setDomainName] = useState("");
   const [domainSaved, setDomainSaved] = useState(false);
+  const [signupsEnabled, setSignupsEnabled] = useState(false);
   const [categories, setCategories] = useState<Category[]>([]);
   const [recurring, setRecurring] = useState<RecurringTemplate[]>([]);
   const [err, setErr] = useState<string | null>(null);
@@ -27,14 +31,27 @@ export function SettingsPage() {
   const load = useCallback(async () => {
     setErr(null);
     try {
-      const [c, r, s] = await Promise.all([
+      const promises: Array<Promise<any>> = [
         apiGet<Category[]>("/api/categories"),
         apiGet<RecurringTemplate[]>("/api/recurring-expenses"),
         apiGet<{ domainName: string }>("/api/app-settings"),
-      ]);
+      ];
+      if (user?.role === "ADMIN") {
+        promises.push(apiGet<{ signupsEnabled: boolean }>("/api/system-settings"));
+      }
+      const results = await Promise.all(promises);
+      const c = results[0] as Category[];
+      const r = results[1] as RecurringTemplate[];
+      const s = results[2] as { domainName: string };
+      
       setCategories(c);
       setRecurring(r);
       setDomainName(s.domainName ?? "");
+      
+      if (user?.role === "ADMIN" && results[3]) {
+        setSignupsEnabled((results[3] as { signupsEnabled: boolean }).signupsEnabled);
+      }
+      
       const b: Record<string, string> = {};
       for (const x of c) {
         b[x.id] = x.budget?.monthlyAmount ?? "";
@@ -43,7 +60,7 @@ export function SettingsPage() {
     } catch (e) {
       setErr(e instanceof Error ? e.message : "Failed to load");
     }
-  }, []);
+  }, [user]);
 
   useEffect(() => {
     load();
@@ -204,6 +221,10 @@ export function SettingsPage() {
           </label>
         </div>
       </section>
+
+      {user?.role === "ADMIN" && (
+        <SettingsAdminSection signupsEnabled={signupsEnabled} onRefresh={load} />
+      )}
 
       <SettingsAccountSection />
 

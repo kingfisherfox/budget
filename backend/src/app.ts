@@ -3,6 +3,7 @@ import cors from "cors";
 import express from "express";
 import { appSettingsRouter } from "./routes/appSettings.js";
 import { authRouter } from "./routes/auth.js";
+import { systemSettingsRouter } from "./routes/systemSettings.js";
 import { categoriesRouter } from "./routes/categories.js";
 import { dashboardRouter } from "./routes/dashboard.js";
 import { expensesRouter } from "./routes/expenses.js";
@@ -29,6 +30,9 @@ export function createApp() {
 
   const api = express.Router();
   api.use("/auth", authRouter);
+
+  // Mount systemSettingsRouter. We'll handle requireAuth inside it for the PUT method.
+  api.use("/system-settings", systemSettingsRouter);
 
   api.use(requireAuth);
   api.use("/app-settings", appSettingsRouter);

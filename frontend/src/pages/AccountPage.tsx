@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Navigate, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+import { apiGet } from "../api/client";
 
 export function AccountPage() {
   const { user, signup, login, loading } = useAuth();
@@ -8,11 +9,28 @@ export function AccountPage() {
   const loc = useLocation();
   const redirectTo = (loc.state as { from?: string } | null)?.from ?? "/";
 
-  const [mode, setMode] = useState<"login" | "signup">("signup");
+  const [signupsEnabled, setSignupsEnabled] = useState<boolean | null>(null);
+  const [mode, setMode] = useState<"login" | "signup">("login");
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [err, setErr] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    apiGet<{ signupsEnabled: boolean }>("/api/system-settings")
+      .then((data) => {
+        setSignupsEnabled(data.signupsEnabled);
+        if (data.signupsEnabled) {
+          setMode("signup");
+        } else {
+          setMode("login");
+        }
+      })
+      .catch(() => {
+        setSignupsEnabled(false);
+        setMode("login");
+      });
+  }, []);
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -33,7 +51,7 @@ export function AccountPage() {
     }
   }
 
-  if (loading) {
+  if (loading || signupsEnabled === null) {
     return (
       <div className="flex min-h-svh items-center justify-center bg-slate-50 text-sm text-slate-600">
         Loading…
@@ -55,36 +73,38 @@ export function AccountPage() {
             : "Sign in to your account to continue."}
         </p>
 
-        <div className="mt-4 flex gap-2 border-b border-slate-100 pb-px">
-          <button
-            type="button"
-            className={`flex-1 border-b-2 py-2 text-xs font-bold uppercase tracking-wider ${
-              mode === "signup"
-                ? "border-indigo-600 text-indigo-600"
-                : "border-transparent text-slate-400"
-            }`}
-            onClick={() => {
-              setMode("signup");
-              setErr(null);
-            }}
-          >
-            Sign up
-          </button>
-          <button
-            type="button"
-            className={`flex-1 border-b-2 py-2 text-xs font-bold uppercase tracking-wider ${
-              mode === "login"
-                ? "border-indigo-600 text-indigo-600"
-                : "border-transparent text-slate-400"
-            }`}
-            onClick={() => {
-              setMode("login");
-              setErr(null);
-            }}
-          >
-            Sign in
-          </button>
-        </div>
+        {signupsEnabled ? (
+          <div className="mt-4 flex gap-2 border-b border-slate-100 pb-px">
+            <button
+              type="button"
+              className={`flex-1 border-b-2 py-2 text-xs font-bold uppercase tracking-wider ${
+                mode === "signup"
+                  ? "border-indigo-600 text-indigo-600"
+                  : "border-transparent text-slate-400"
+              }`}
+              onClick={() => {
+                setMode("signup");
+                setErr(null);
+              }}
+            >
+              Sign up
+            </button>
+            <button
+              type="button"
+              className={`flex-1 border-b-2 py-2 text-xs font-bold uppercase tracking-wider ${
+                mode === "login"
+                  ? "border-indigo-600 text-indigo-600"
+                  : "border-transparent text-slate-400"
+              }`}
+              onClick={() => {
+                setMode("login");
+                setErr(null);
+              }}
+            >
+              Sign in
+            </button>
+          </div>
+        ) : null}
 
         {err && <p className="mt-4 text-sm font-medium text-red-600">{err}</p>}
 

@@ -9,7 +9,17 @@ Multiple **User** rows are allowed. **`POST /api/auth/signup`** (UI: **`/account
 | id | String (cuid) | Primary key |
 | username | String | Unique, stored lowercase |
 | passwordHash | String | bcrypt hash only (see `backend/src/routes/auth.ts`) |
+| role | String | Default "USER". First user to sign up becomes "ADMIN" |
 | createdAt / updatedAt | DateTime | UTC |
+
+## SystemSettings
+
+Global configuration table.
+
+| Field | Type | Description |
+|-------|------|-------------|
+| id | String | PK, always "1" |
+| signupsEnabled | Boolean | Default true. Toggled by ADMIN |
 
 ## Session
 

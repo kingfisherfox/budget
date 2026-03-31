@@ -11,11 +11,17 @@ model User {
   id           String   @id @default(cuid())
   username     String   @unique
   passwordHash String
+  role         String   @default("USER") // "ADMIN" or "USER"
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
   sessions     Session[]
   categories   Category[]
   appSettings  AppSettings?
+}
+
+model SystemSettings {
+  id             String  @id @default("1")
+  signupsEnabled Boolean @default(true)
 }
 
 model Session {

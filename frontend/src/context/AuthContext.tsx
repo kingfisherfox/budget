@@ -8,7 +8,7 @@ import {
 } from "react";
 import { apiGet, apiPost, apiPostNoContent } from "../api/client";
 
-export type AuthUser = { id: string; username: string };
+export type AuthUser = { id: string; username: string; role: string };
 
 type MeResponse = { user: AuthUser | null };
 

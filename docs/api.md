@@ -17,12 +17,19 @@ Base path: `/api`. JSON bodies and responses unless noted.
 
 ## Auth
 
-Users are stored in PostgreSQL with **bcrypt** password hashes. There is **no** `POST /api/auth/change-password` in the API yet.
+Users are stored in PostgreSQL with **bcrypt** password hashes. There is **no** `POST /api/auth/change-password` in the API yet. The first user to sign up automatically gets the `ADMIN` role, subsequent users get `USER`.
 
-- `GET /api/auth/me` — `{ user: { id, username } | null }` (no cookie → `user: null`)
-- `POST /api/auth/signup` body `{ username, password }` — username 3–64 chars `[a-zA-Z0-9_-]+`, password 8–128 chars; `201` + `Set-Cookie` + `{ user }`; `409` if username already taken
-- `POST /api/auth/login` body `{ username, password }` — `200` + `Set-Cookie` + `{ user }`; `401` if invalid
+- `GET /api/auth/me` — `{ user: { id, username, role } | null }` (no cookie → `user: null`)
+- `POST /api/auth/signup` body `{ username, password }` — username 3–64 chars `[a-zA-Z0-9_-]+`, password 8–128 chars; `201` + `Set-Cookie` + `{ user: { id, username, role } }`; `409` if username already taken; `403` if signups are disabled (unless it's the first user).
+- `POST /api/auth/login` body `{ username, password }` — `200` + `Set-Cookie` + `{ user: { id, username, role } }`; `401` if invalid
 - `POST /api/auth/logout` — clears server session + cookie; `204`
+
+## System settings
+
+Global configuration, editable only by `ADMIN` users.
+
+- `GET /api/system-settings` (public) → `{ signupsEnabled: boolean }`
+- `PUT /api/system-settings` (protected, requires `ADMIN` role) body `{ signupsEnabled: boolean }` → updated setting object
 
 ## App settings
 

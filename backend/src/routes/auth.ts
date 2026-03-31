@@ -44,7 +44,7 @@ authRouter.get("/me", async (req: Request, res: Response, next) => {
     }
     const session = await prisma.session.findUnique({
       where: { token },
-      include: { user: { select: { id: true, username: true } } },
+      include: { user: { select: { id: true, username: true, role: true } } },
     });
     if (!session || session.expiresAt < new Date()) {
       if (session) {
@@ -55,7 +55,7 @@ authRouter.get("/me", async (req: Request, res: Response, next) => {
       return;
     }
     res.json({
-      user: { id: session.user.id, username: session.user.username },
+      user: { id: session.user.id, username: session.user.username, role: session.user.role },
     });
   } catch (e) {
     next(e);
@@ -68,21 +68,36 @@ authRouter.post("/signup", async (req, res, next) => {
     if (!parsed.success) {
       throw new HttpError(400, "Validation failed", { errors: parsed.error.flatten() });
     }
+
+    let settings = await prisma.systemSettings.findUnique({ where: { id: "1" } });
+    if (!settings) {
+      settings = await prisma.systemSettings.create({ data: { id: "1", signupsEnabled: true } });
+    }
+
+    const userCount = await prisma.user.count();
+    const isFirstUser = userCount === 0;
+
+    if (!settings.signupsEnabled && !isFirstUser) {
+      throw new HttpError(403, "Signups are currently disabled.");
+    }
+
     const username = parsed.data.username.toLowerCase();
     const taken = await prisma.user.findUnique({ where: { username } });
     if (taken) {
       throw new HttpError(409, "Username already taken");
     }
+
     const passwordHash = await bcrypt.hash(parsed.data.password, 12);
     const user = await prisma.user.create({
       data: {
         username,
         passwordHash,
+        role: isFirstUser ? "ADMIN" : "USER",
         appSettings: { create: { currencyCode: "THB", domainName: "" } },
       },
     });
     await createSession(user.id, req, res);
-    res.status(201).json({ user: { id: user.id, username: user.username } });
+    res.status(201).json({ user: { id: user.id, username: user.username, role: user.role } });
   } catch (e) {
     next(e);
   }
@@ -100,7 +115,7 @@ authRouter.post("/login", async (req, res, next) => {
       throw new HttpError(401, "Invalid username or password");
     }
     await createSession(user.id, req, res);
-    res.json({ user: { id: user.id, username: user.username } });
+    res.json({ user: { id: user.id, username: user.username, role: user.role } });
   } catch (e) {
     next(e);
   }
