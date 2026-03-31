@@ -6,7 +6,7 @@ import { isOffline } from "../lib/pwa";
 
 const linkCls = ({ isActive }: { isActive: boolean }) =>
   [
-    "flex-1 py-4 text-center text-xs uppercase tracking-wider font-semibold border-t-2 transition-colors",
+    "py-3 text-center text-[10px] uppercase tracking-wider font-semibold border-t-2 transition-colors sm:py-4 sm:text-xs",
     isActive
       ? "border-neutral-900 text-neutral-900 bg-neutral-100/50"
       : "border-transparent text-neutral-500 hover:text-neutral-700 hover:bg-neutral-50",
@@ -46,7 +46,7 @@ export function AppLayout() {
         <Outlet />
       </main>
       <PwaInstallBanner />
-      <nav className="sticky bottom-0 flex border-t border-slate-200 bg-white/90 pb-[env(safe-area-inset-bottom)] backdrop-blur-md md:relative md:border-t-0 md:pb-0">
+      <nav className="sticky bottom-0 grid grid-cols-4 border-t border-slate-200 bg-white/90 pb-[env(safe-area-inset-bottom)] backdrop-blur-md md:relative md:border-t-0 md:pb-0">
         <NavLink to="/" end className={linkCls}>
           Home
         </NavLink>

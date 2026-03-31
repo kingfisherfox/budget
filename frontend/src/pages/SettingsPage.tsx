@@ -3,6 +3,7 @@ import { apiDelete, apiGet, apiPost, apiPut, apiPatch } from "../api/client";
 import type { Category, RecurringTemplate } from "../api/types";
 import { useCurrency } from "../context/CurrencyContext";
 import { SettingsCategoriesSection } from "../settings/SettingsCategoriesSection";
+import { SettingsAccountSection } from "../settings/SettingsAccountSection";
 import { SettingsRecurringSection } from "../settings/SettingsRecurringSection";
 import { CURRENCY_CODES } from "../settings/currencies";
 
@@ -176,6 +177,8 @@ export function SettingsPage() {
           </label>
         </div>
       </section>
+
+      <SettingsAccountSection />
 
       <SettingsCategoriesSection
         categories={categories}
