@@ -15,6 +15,7 @@ async function resetDb() {
   await prisma.categoryBudget.deleteMany();
   await prisma.category.deleteMany();
   await prisma.appSettings.deleteMany();
+  await prisma.systemSettings.deleteMany();
   await prisma.user.deleteMany();
 }
 

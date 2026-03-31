@@ -17,6 +17,7 @@ docker compose up --build
 
 Postgres is exposed on the host at **port 5961** (`localhost:5961` → container `5432`). The API always connects to the database at **`db:5432`** inside Docker — do not change that in `DATABASE_URL` unless you know what you are doing.
 
+
 If you change dependencies, run `docker compose up --build` once.
 
 To stop: `Ctrl+C` or `docker compose down`.

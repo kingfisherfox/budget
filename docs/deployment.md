@@ -39,6 +39,7 @@ Default **[`docker-compose.yml`](../docker-compose.yml)**:
 - **`api`:** Compiled Node (`runner`). Entrypoint runs **`npx prisma migrate deploy`**, then **`node dist/index.js`**.
 - **`db`:** Postgres 16, volume **`pgdata`**. Host port **`5961` → container `5432`**.
 
+
 From repo root:
 
 ```bash
@@ -73,6 +74,3 @@ Open **http://localhost:8081/account**, **Sign up** for the first user, then use
 
 Root [`.gitignore`](../.gitignore) excludes **`scripts/`** and **`tests/`**. Nothing under those paths is tracked.
 
-- **Migrations:** from `backend/` with `DATABASE_URL` set: `npx prisma migrate deploy` (production) or `npx prisma migrate dev` (development).
-- **PWA icons:** `manifest.webmanifest` expects **192×192** and **512×512** in `frontend/public/img/`.
-- **Vitest:** `backend/package.json` defines `npm test` pointing at `../tests/**/*.test.ts` if you maintain a local **`tests/`** tree.
