@@ -19,6 +19,10 @@ npm run build
 
 Output: `dist/` — static assets plus `manifest.webmanifest` and `sw.js` copied from `public/`.
 
+## Auth in the browser
+
+The SPA uses **`/account`** for login only (credentials match server **`BUDGET_ADMIN_*`** env — see root **`.env.example`**). API calls use **`credentials: "include"`** for the **`budget_session`** cookie. Root **[`../README.md`](../README.md)** describes the full auth model.
+
 ## Project docs
 
 Product, API, and deployment documentation live in the repo root **[`../README.md`](../README.md)** and **[`../docs/`](../docs/)** — not in this folder.

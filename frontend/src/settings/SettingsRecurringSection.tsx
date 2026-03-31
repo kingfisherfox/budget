@@ -1,12 +1,13 @@
 import type { Dispatch, SetStateAction } from "react";
 import type { Category, RecurringTemplate } from "../api/types";
-import { formatMoney } from "../lib/money";
+import { RecurringTemplateRow } from "./RecurringTemplateRow";
 
 type RecForm = {
   name: string;
   categoryId: string;
   defaultAmount: string;
   isCommon: boolean;
+  subcategoriesText: string;
 };
 
 type Props = {
@@ -17,6 +18,7 @@ type Props = {
   setRecForm: Dispatch<SetStateAction<RecForm>>;
   onAddRecurring: () => void;
   onDeleteRecurring: (id: string) => void;
+  onSaveSubcategories: (id: string, subcategories: { name: string }[]) => Promise<void>;
 };
 
 export function SettingsRecurringSection({
@@ -27,16 +29,20 @@ export function SettingsRecurringSection({
   setRecForm,
   onAddRecurring,
   onDeleteRecurring,
+  onSaveSubcategories,
 }: Props) {
   return (
     <section className="flex flex-col gap-4 rounded-none border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
       <h2 className="text-xs font-bold uppercase tracking-widest text-slate-400">
         Recurring / Common Spend
       </h2>
+      <p className="text-xs text-slate-500">
+        Optional subcategories (e.g. store names) appear when logging this template on the dashboard; the expense name becomes the subcategory you pick.
+      </p>
       <div className="flex flex-col gap-3">
         <input
           className="h-10 w-full rounded-none border border-slate-200 bg-slate-50 px-3 text-sm transition-colors focus:border-indigo-600 focus:bg-white focus:outline-none"
-          placeholder="Name (e.g. Rent, Coffee)"
+          placeholder="Name (e.g. Shopping)"
           value={recForm.name}
           onChange={(e) => setRecForm((f) => ({ ...f, name: e.target.value }))}
         />
@@ -53,6 +59,17 @@ export function SettingsRecurringSection({
             </option>
           ))}
         </select>
+        <label className="flex flex-col gap-1 text-xs font-medium text-slate-600">
+          <span className="uppercase tracking-wider text-slate-400">Subcategories (optional, one per line)</span>
+          <textarea
+            className="min-h-[72px] w-full rounded-none border border-slate-200 bg-slate-50 px-3 py-2 text-sm transition-colors focus:border-indigo-600 focus:bg-white focus:outline-none"
+            value={recForm.subcategoriesText}
+            onChange={(e) =>
+              setRecForm((f) => ({ ...f, subcategoriesText: e.target.value }))
+            }
+            placeholder="e.g. Villa, then Tops on the next line"
+          />
+        </label>
         <input
           className="h-10 w-full rounded-none border border-slate-200 bg-slate-50 px-3 text-sm transition-colors focus:border-indigo-600 focus:bg-white focus:outline-none"
           placeholder="Default amount (optional)"
@@ -83,36 +100,13 @@ export function SettingsRecurringSection({
       </div>
       <ul className="flex flex-col gap-2 pt-2">
         {recurring.map((r) => (
-          <li
+          <RecurringTemplateRow
             key={r.id}
-            className="flex min-w-0 items-center gap-1.5 rounded-none border border-slate-200 bg-white px-2 py-2 shadow-sm transition-colors hover:border-slate-300 sm:gap-2 sm:px-3 sm:py-2.5"
-          >
-            <div className="flex min-w-0 flex-1 flex-nowrap items-center gap-1.5 overflow-hidden">
-              <span className="min-w-0 truncate text-sm font-bold text-slate-900">
-                {r.name}
-              </span>
-              {r.isCommon ? (
-                <span className="shrink-0 whitespace-nowrap bg-slate-100 px-1 py-0.5 text-[9px] font-bold uppercase text-slate-500">
-                  Com
-                </span>
-              ) : null}
-              <span className="max-w-[32%] shrink truncate whitespace-nowrap text-[11px] font-semibold uppercase tracking-wide text-slate-500">
-                {r.category.name}
-              </span>
-              {r.defaultAmount != null ? (
-                <span className="ml-auto shrink-0 text-xs font-semibold tabular-nums text-slate-900">
-                  {formatMoney(r.defaultAmount, currencyCode)}
-                </span>
-              ) : null}
-            </div>
-            <button
-              type="button"
-              className="h-8 shrink-0 rounded-none border border-red-200 bg-white px-2 text-[10px] font-bold uppercase tracking-wide text-red-600 transition-colors hover:border-red-400 hover:bg-red-50 sm:h-9 sm:px-3 sm:text-xs"
-              onClick={() => void onDeleteRecurring(r.id)}
-            >
-              Del
-            </button>
-          </li>
+            item={r}
+            currencyCode={currencyCode}
+            onDelete={onDeleteRecurring}
+            onSaveSubcategories={onSaveSubcategories}
+          />
         ))}
       </ul>
     </section>

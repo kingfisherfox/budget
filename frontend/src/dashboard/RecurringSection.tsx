@@ -104,6 +104,10 @@ function RecurringConfirmModal({
   onClose: () => void;
   onDone: () => void;
 }) {
+  const hasSubs = item.subcategories.length > 0;
+  const [subcategoryId, setSubcategoryId] = useState(
+    () => item.subcategories[0]?.id ?? ""
+  );
   const [amount, setAmount] = useState(item.defaultAmount ?? "");
   const [note, setNote] = useState("");
   const [err, setErr] = useState<string | null>(null);
@@ -115,11 +119,17 @@ function RecurringConfirmModal({
       setErr("Valid amount required");
       return;
     }
+    if (hasSubs && !subcategoryId) {
+      setErr("Choose a subcategory");
+      return;
+    }
     setSaving(true);
     setErr(null);
     try {
       await apiPost("/api/expenses", {
-        name: item.name,
+        ...(hasSubs
+          ? { recurringSubcategoryId: subcategoryId }
+          : { name: item.name }),
         categoryId: item.categoryId,
         amount: n,
         date: todayISODateUTC(),
@@ -142,6 +152,22 @@ function RecurringConfirmModal({
         </h2>
         <p className="mt-1 text-sm font-medium text-slate-500">{item.name}</p>
         <div className="mt-6 flex flex-col gap-4">
+          {hasSubs ? (
+            <label className="flex flex-col gap-1 text-sm font-medium text-slate-700">
+              <span className="text-xs uppercase tracking-wider text-slate-500">Subcategory</span>
+              <select
+                className="h-10 rounded-none border border-slate-200 bg-slate-50 px-3 text-base transition-colors focus:border-indigo-600 focus:bg-white focus:outline-none"
+                value={subcategoryId}
+                onChange={(e) => setSubcategoryId(e.target.value)}
+              >
+                {item.subcategories.map((s) => (
+                  <option key={s.id} value={s.id}>
+                    {s.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+          ) : null}
           <label className="flex flex-col gap-1 text-sm font-medium text-slate-700">
             <span className="text-xs uppercase tracking-wider text-slate-500">Amount ({currencyCode})</span>
             <input

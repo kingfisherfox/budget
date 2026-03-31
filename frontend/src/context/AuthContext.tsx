@@ -17,7 +17,6 @@ type Ctx = {
   loading: boolean;
   refresh: () => Promise<void>;
   login: (username: string, password: string) => Promise<void>;
-  signup: (username: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
 };
 
@@ -48,22 +47,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setUser(res.user);
   }, []);
 
-  const signup = useCallback(async (username: string, password: string) => {
-    const res = await apiPost<{ user: AuthUser }>("/api/auth/signup", {
-      username,
-      password,
-    });
-    setUser(res.user);
-  }, []);
-
   const logout = useCallback(async () => {
     await apiPostNoContent("/api/auth/logout");
     setUser(null);
   }, []);
 
   const value = useMemo(
-    () => ({ user, loading, refresh, login, signup, logout }),
-    [user, loading, refresh, login, signup, logout]
+    () => ({ user, loading, refresh, login, logout }),
+    [user, loading, refresh, login, logout]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

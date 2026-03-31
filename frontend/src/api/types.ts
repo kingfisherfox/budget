@@ -7,6 +7,12 @@ export type Category = {
   budget: { monthlyAmount: string } | null;
 };
 
+export type RecurringSubcategory = {
+  id: string;
+  name: string;
+  sortOrder: number;
+};
+
 export type Expense = {
   id: string;
   name: string;
@@ -15,6 +21,7 @@ export type Expense = {
   date: string;
   note: string | null;
   recurringExpenseId: string | null;
+  recurringSubcategoryId: string | null;
   createdAt: string;
   category: { id: string; name: string };
 };
@@ -27,6 +34,7 @@ export type RecurringStatus = {
   isCommon: boolean;
   sortOrder: number;
   category: { id: string; name: string };
+  subcategories: RecurringSubcategory[];
   completed: boolean;
 };
 
@@ -39,6 +47,7 @@ export type RecurringTemplate = {
   sortOrder: number;
   createdAt: string;
   category: { id: string; name: string };
+  subcategories: RecurringSubcategory[];
 };
 
 export type WishlistItem = {

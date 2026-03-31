@@ -17,7 +17,8 @@ type Props = {
 
 export function DailySpendChart({ data, currencyCode }: Props) {
   const rows = data.dailySpend.map((d) => ({
-    day: d.date.slice(5), // "MM-DD"
+    day: Number(d.date.slice(8, 10)),
+    date: d.date,
     total: d.total,
   }));
   return (
@@ -25,11 +26,26 @@ export function DailySpendChart({ data, currencyCode }: Props) {
       <h2 className="text-xs font-bold uppercase tracking-widest text-slate-400">
         Daily spend
       </h2>
-      <div className="h-48 w-full">
+      <div className="h-52 w-full min-h-[13rem] sm:h-56 sm:min-h-[14rem]">
         <ResponsiveContainer width="100%" height="100%">
-          <BarChart data={rows} margin={{ top: 8, right: 8, left: -20, bottom: 0 }}>
+          <BarChart
+            data={rows}
+            margin={{ top: 8, right: 8, left: -20, bottom: 4 }}
+            barCategoryGap="10%"
+          >
             <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
-            <XAxis dataKey="day" tick={{ fontSize: 11, fill: '#64748b' }} axisLine={false} tickLine={false} />
+            <XAxis
+              dataKey="day"
+              type="category"
+              interval={0}
+              minTickGap={0}
+              tick={{ fontSize: 10, fill: "#64748b" }}
+              axisLine={false}
+              tickLine={false}
+              angle={-35}
+              textAnchor="end"
+              height={44}
+            />
             <YAxis 
               tick={{ fontSize: 11, fill: '#64748b' }} 
               axisLine={false} 
@@ -40,7 +56,10 @@ export function DailySpendChart({ data, currencyCode }: Props) {
               formatter={(v) =>
                 formatMoney(v == null ? 0 : Number(v), currencyCode)
               }
-              labelFormatter={(l) => `Date: ${l}`}
+              labelFormatter={(_, payload) => {
+                const iso = payload?.[0]?.payload?.date as string | undefined;
+                return iso ? `Date: ${iso}` : "";
+              }}
               contentStyle={{ borderRadius: 0, border: '1px solid #e2e8f0', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}
               cursor={{ fill: '#f8fafc' }}
             />

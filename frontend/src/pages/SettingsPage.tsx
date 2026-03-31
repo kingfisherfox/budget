@@ -21,6 +21,7 @@ export function SettingsPage() {
     categoryId: "",
     defaultAmount: "",
     isCommon: false,
+    subcategoriesText: "",
   });
 
   const load = useCallback(async () => {
@@ -105,6 +106,11 @@ export function SettingsPage() {
 
   async function addRecurring() {
     if (!recForm.name.trim() || !recForm.categoryId) return;
+    const subcategories = recForm.subcategoriesText
+      .split("\n")
+      .map((l) => l.trim())
+      .filter(Boolean)
+      .map((name) => ({ name }));
     const payload: Record<string, unknown> = {
       name: recForm.name.trim(),
       categoryId: recForm.categoryId,
@@ -114,12 +120,33 @@ export function SettingsPage() {
       const n = Number(recForm.defaultAmount);
       if (Number.isFinite(n) && n > 0) payload.defaultAmount = n;
     }
+    if (subcategories.length > 0) payload.subcategories = subcategories;
     try {
       await apiPost("/api/recurring-expenses", payload);
-      setRecForm((f) => ({ ...f, name: "", defaultAmount: "", isCommon: false }));
+      setRecForm((f) => ({
+        ...f,
+        name: "",
+        defaultAmount: "",
+        isCommon: false,
+        subcategoriesText: "",
+      }));
       load();
     } catch (e) {
       setErr(e instanceof Error ? e.message : "Failed");
+    }
+  }
+
+  async function saveRecurringSubcategories(
+    id: string,
+    subcategories: { name: string }[]
+  ) {
+    setErr(null);
+    try {
+      await apiPatch(`/api/recurring-expenses/${id}`, { subcategories });
+      await load();
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : "Failed to save subcategories");
+      throw e;
     }
   }
 
@@ -199,6 +226,7 @@ export function SettingsPage() {
         setRecForm={setRecForm}
         onAddRecurring={addRecurring}
         onDeleteRecurring={deleteRecurring}
+        onSaveSubcategories={saveRecurringSubcategories}
       />
     </div>
   );

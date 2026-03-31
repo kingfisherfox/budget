@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
-import { apiDelete, apiGet, apiPatch } from "../api/client";
+import { apiGet, apiPatch } from "../api/client";
 import type { Category, Expense } from "../api/types";
+import { DeleteExpenseConfirmModal } from "../components/DeleteExpenseConfirmModal";
 import { useCurrency } from "../context/CurrencyContext";
 import { useMonth } from "../context/MonthContext";
 import { formatMoney } from "../lib/money";
@@ -12,6 +13,7 @@ export function ExpensesPage() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [err, setErr] = useState<string | null>(null);
   const [editing, setEditing] = useState<Expense | null>(null);
+  const [pendingDelete, setPendingDelete] = useState<Expense | null>(null);
 
   const load = useCallback(async () => {
     setErr(null);
@@ -30,16 +32,6 @@ export function ExpensesPage() {
   useEffect(() => {
     load();
   }, [load]);
-
-  async function remove(id: string) {
-    if (!window.confirm("Delete this expense permanently?")) return;
-    try {
-      await apiDelete(`/api/expenses/${id}`);
-      load();
-    } catch (e) {
-      setErr(e instanceof Error ? e.message : "Delete failed");
-    }
-  }
 
   // Group items by date
   const groupedItems = items.reduce((acc, item) => {
@@ -106,7 +98,7 @@ export function ExpensesPage() {
                         <button
                           type="button"
                           className="h-8 rounded-none border border-red-200 bg-white px-2.5 text-[10px] font-bold uppercase tracking-wide text-red-600 transition-colors hover:border-red-400 hover:bg-red-50"
-                          onClick={() => remove(e.id)}
+                          onClick={() => setPendingDelete(e)}
                         >
                           Del
                         </button>
@@ -132,6 +124,14 @@ export function ExpensesPage() {
             setEditing(null);
             load();
           }}
+        />
+      )}
+      {pendingDelete && (
+        <DeleteExpenseConfirmModal
+          expense={pendingDelete}
+          currencyCode={currencyCode}
+          onClose={() => setPendingDelete(null)}
+          onDeleted={() => void load()}
         />
       )}
     </div>
