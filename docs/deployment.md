@@ -5,7 +5,7 @@
 - **Backend:** `DATABASE_URL` — PostgreSQL connection string (e.g. `postgresql://user:pass@db:5432/expenses`).
 - **Frontend build:** `VITE_API_URL` — empty or same-origin; in Docker behind nginx, use relative `/api` (proxy) or full URL to API.
 
-## Docker Compose (production-style)
+## Docker Compose (development with hot reload)
 
 From repo root:
 
@@ -13,7 +13,9 @@ From repo root:
 docker compose up --build
 ```
 
-Services: `db` (Postgres), `api` (Express + migrations on start), `web` (nginx + static SPA). API exposed on host port **4000**; web on **8080** (adjust in `docker-compose.yml`).
+Services: `db` (Postgres), `api` (Express + migrations on start), `web` (Vite dev server). **Only `web` is published** to the host (`8081` → container `8080`). `db` and `api` have no host ports; the browser talks to `http://localhost:8081` and Vite proxies `/api` to `http://api:4000` inside the compose network.
+
+**Host-side Prisma / integration tests:** With Postgres not published, `DATABASE_URL=...@localhost:5432` from your host will not reach the DB. Options: temporarily add `ports: ["5432:5432"]` on `db` in a local override file, or run tests inside a container attached to the same network.
 
 ## Local development (hot reload)
 

@@ -44,8 +44,8 @@ docker compose up --build
 *Note: The first time you run this, it will take a few minutes to download the necessary Docker images, install dependencies, and build the frontend and backend.*
 
 4. **Access the application**:
-   - Open your web browser and go to: `http://localhost:8080`
-   - The backend API runs on `http://localhost:4000` (proxied automatically by the frontend).
+   - Open your web browser and go to: `http://localhost:8081`
+   - Only the **web** container is published to your machine. The API and database are internal to Docker; the Vite dev server proxies `/api` to the API service, so the app works through that single URL.
 
 5. **Stopping the application**:
    - Press `Ctrl+C` in the terminal where Docker Compose is running.
