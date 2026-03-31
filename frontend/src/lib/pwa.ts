@@ -22,12 +22,38 @@ export function isOffline(): boolean {
   return !window.navigator.onLine;
 }
 
+/** Firefox never fires `beforeinstallprompt`; install is via the browser menu or address bar. */
+export function isFirefox(): boolean {
+  if (typeof window === "undefined") return false;
+  return /Firefox\//i.test(window.navigator.userAgent);
+}
+
+/** Blink-based browsers that typically support install + `beforeinstallprompt` when criteria are met. */
+export function isChromiumFamily(): boolean {
+  if (typeof window === "undefined") return false;
+  const ua = window.navigator.userAgent;
+  if (/Firefox/i.test(ua)) return false;
+  return /Chrome|Chromium|Edg\/|OPR\/|Brave/i.test(ua);
+}
+
 /** Registers a minimal SW (no caching) so the app qualifies as installable where browsers require one. */
 export function registerServiceWorker(): void {
   if (typeof window === "undefined" || !("serviceWorker" in navigator)) return;
-  window.addEventListener("load", () => {
-    void navigator.serviceWorker.register("/sw.js", { scope: "/" }).catch(() => {
-      /* ignore */
-    });
-  });
+
+  const register = () => {
+    void navigator.serviceWorker
+      .register("/sw.js", { scope: "/", type: "classic", updateViaCache: "none" })
+      .then((reg) => {
+        void reg.update();
+      })
+      .catch(() => {
+        /* non-secure context (e.g. http://LAN IP) or registration blocked */
+      });
+  };
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", register, { once: true });
+  } else {
+    register();
+  }
 }

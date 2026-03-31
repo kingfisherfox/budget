@@ -1,5 +1,7 @@
-App icon for Budget (favicon, home screen, PWA manifest).
+App icon for Budget (favicon, apple-touch-icon).
 
-Replace icon.png with your artwork. Recommended: square PNG, at least 512×512 pixels (maskable-safe padding helps on Android).
+Replace icon.png with your artwork (square PNG; 512×512 or larger recommended). After changing it, regenerate PWA sizes so the manifest matches real pixels:
 
-File must stay named icon.png unless you also update frontend/index.html and public/manifest.webmanifest.
+  ./scripts/generate-pwa-icons.sh   (macOS)
+
+That writes icon-192.png and icon-512.png, which manifest.webmanifest references for install prompts (Chromium requires correct sizes).

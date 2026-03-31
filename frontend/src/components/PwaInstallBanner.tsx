@@ -1,16 +1,35 @@
-import { useCallback, useEffect, useState } from "react";
-import { isIosSafari, isStandaloneDisplay } from "../lib/pwa";
+import { useCallback, useEffect, useRef, useState } from "react";
+import {
+  isChromiumFamily,
+  isFirefox,
+  isIosSafari,
+  isStandaloneDisplay,
+} from "../lib/pwa";
 
 const IOS_TIP_KEY = "budget-pwa-ios-tip-dismissed";
+const MANUAL_INSTALL_KEY = "budget-pwa-manual-install-dismissed";
 
 type BeforeInstallPromptEvent = Event & {
   prompt: () => Promise<void>;
   userChoice: Promise<{ outcome: "accepted" | "dismissed" }>;
 };
 
+function manualDismissed(): boolean {
+  try {
+    return localStorage.getItem(MANUAL_INSTALL_KEY) === "1";
+  } catch {
+    return false;
+  }
+}
+
 export function PwaInstallBanner() {
   const [deferred, setDeferred] = useState<BeforeInstallPromptEvent | null>(null);
+  const deferredRef = useRef<BeforeInstallPromptEvent | null>(null);
+  deferredRef.current = deferred;
+
   const [iosTip, setIosTip] = useState(false);
+  const [firefoxTip, setFirefoxTip] = useState(false);
+  const [chromiumFallback, setChromiumFallback] = useState(false);
   const [installing, setInstalling] = useState(false);
 
   useEffect(() => {
@@ -19,6 +38,7 @@ export function PwaInstallBanner() {
     const onBip = (e: Event) => {
       e.preventDefault();
       setDeferred(e as BeforeInstallPromptEvent);
+      setChromiumFallback(false);
     };
     window.addEventListener("beforeinstallprompt", onBip);
 
@@ -29,7 +49,44 @@ export function PwaInstallBanner() {
       /* private mode */
     }
 
+    if (!manualDismissed() && isFirefox() && !isIosSafari()) {
+      setFirefoxTip(true);
+    }
+
     return () => window.removeEventListener("beforeinstallprompt", onBip);
+  }, []);
+
+  useEffect(() => {
+    if (isStandaloneDisplay() || isFirefox() || isIosSafari() || manualDismissed()) return;
+    if (!isChromiumFamily()) return;
+
+    const id = window.setTimeout(() => {
+      if (!deferredRef.current && !manualDismissed()) {
+        setChromiumFallback(true);
+      }
+    }, 4500);
+
+    return () => window.clearTimeout(id);
+  }, []);
+
+  useEffect(() => {
+    if (!deferred) return;
+    const onInstalled = () => {
+      setDeferred(null);
+      setChromiumFallback(false);
+    };
+    window.addEventListener("appinstalled", onInstalled);
+    return () => window.removeEventListener("appinstalled", onInstalled);
+  }, [deferred]);
+
+  const dismissManual = useCallback(() => {
+    try {
+      localStorage.setItem(MANUAL_INSTALL_KEY, "1");
+    } catch {
+      /* ignore */
+    }
+    setFirefoxTip(false);
+    setChromiumFallback(false);
   }, []);
 
   const dismissIos = useCallback(() => {
@@ -100,6 +157,53 @@ export function PwaInstallBanner() {
             type="button"
             className="self-start text-xs font-bold uppercase tracking-wider text-amber-900 underline"
             onClick={dismissIos}
+          >
+            Dismiss
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  if (firefoxTip) {
+    return (
+      <div className="border-t border-indigo-200 bg-indigo-50 px-4 py-3">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+          <p className="text-sm text-slate-800">
+            <span className="font-bold">Open Budget like an app:</span> use the{" "}
+            <span className="font-semibold">menu</span> (☰) and choose{" "}
+            <span className="font-semibold">Install</span>, or{" "}
+            <span className="font-semibold">Install this site as an app</span>. On some versions you
+            will see an install icon in the address bar.
+          </p>
+          <button
+            type="button"
+            className="h-9 shrink-0 self-start rounded-none border border-slate-300 bg-white px-3 text-xs font-bold uppercase tracking-wider text-slate-700"
+            onClick={dismissManual}
+          >
+            Dismiss
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  if (chromiumFallback) {
+    return (
+      <div className="border-t border-indigo-200 bg-indigo-50 px-4 py-3">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+          <p className="text-sm text-slate-800">
+            <span className="font-bold">Install as an app:</span> open the browser{" "}
+            <span className="font-semibold">⋮</span> menu and look for{" "}
+            <span className="font-semibold">Install Budget…</span>,{" "}
+            <span className="font-semibold">Install page as app</span>, or{" "}
+            <span className="font-semibold">Save and share → Install</span> (wording varies by
+            version).
+          </p>
+          <button
+            type="button"
+            className="h-9 shrink-0 self-start rounded-none border border-slate-300 bg-white px-3 text-xs font-bold uppercase tracking-wider text-slate-700"
+            onClick={dismissManual}
           >
             Dismiss
           </button>
