@@ -37,6 +37,7 @@ model Session {
 model AppSettings {
   userId       String @id
   currencyCode String @default("THB")
+  timeZone     String @default("UTC")
   domainName   String @default("")
   user         User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 }

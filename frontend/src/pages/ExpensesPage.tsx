@@ -2,13 +2,13 @@ import { useCallback, useEffect, useState } from "react";
 import { apiGet, apiPatch } from "../api/client";
 import type { Category, Expense } from "../api/types";
 import { DeleteExpenseConfirmModal } from "../components/DeleteExpenseConfirmModal";
-import { useCurrency } from "../context/CurrencyContext";
+import { useSettings } from "../context/SettingsContext";
 import { useMonth } from "../context/MonthContext";
 import { formatMoney } from "../lib/money";
 
 export function ExpensesPage() {
   const { month } = useMonth();
-  const { currencyCode } = useCurrency();
+  const { currencyCode } = useSettings();
   const [items, setItems] = useState<Expense[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [err, setErr] = useState<string | null>(null);

@@ -2,7 +2,8 @@ import { useState } from "react";
 import { apiPost } from "../api/client";
 import type { RecurringStatus } from "../api/types";
 import { formatMoney } from "../lib/money";
-import { formatMonthDisplay, todayISODateUTC } from "../lib/month";
+import { formatMonthDisplay, todayISODate } from "../lib/month";
+import { useSettings } from "../context/SettingsContext";
 
 type Props = {
   items: RecurringStatus[];
@@ -17,6 +18,7 @@ export function RecurringSection({
   month,
   onLogged,
 }: Props) {
+  const { timeZone } = useSettings();
   const [showHidden, setShowHidden] = useState(false);
   const [selectedRecurring, setSelectedRecurring] = useState<RecurringStatus | null>(null);
 
@@ -76,7 +78,7 @@ export function RecurringSection({
           ))
         )}
       </div>
-      <p className="text-xs text-slate-400">Month: {formatMonthDisplay(month)}</p>
+      <p className="text-xs text-slate-400">Month: {formatMonthDisplay(month, timeZone)}</p>
 
       {selectedRecurring && (
         <RecurringConfirmModal
@@ -104,6 +106,7 @@ function RecurringConfirmModal({
   onClose: () => void;
   onDone: () => void;
 }) {
+  const { timeZone } = useSettings();
   const hasSubs = item.subcategories.length > 0;
   const [subcategoryId, setSubcategoryId] = useState(
     () => item.subcategories[0]?.id ?? ""
@@ -132,7 +135,7 @@ function RecurringConfirmModal({
           : { name: item.name }),
         categoryId: item.categoryId,
         amount: n,
-        date: todayISODateUTC(),
+        date: todayISODate(timeZone),
         note: note.trim() || null,
         recurringExpenseId: item.id,
       });

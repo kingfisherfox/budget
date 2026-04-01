@@ -6,7 +6,7 @@ import type {
   Expense,
   RecurringStatus,
 } from "../api/types";
-import { useCurrency } from "../context/CurrencyContext";
+import { useSettings } from "../context/SettingsContext";
 import { useMonth } from "../context/MonthContext";
 import { DailySpendChart } from "../dashboard/DailySpendChart";
 import { DashboardExpenseList } from "../dashboard/DashboardExpenseList";
@@ -16,7 +16,7 @@ import { RecurringSection } from "../dashboard/RecurringSection";
 
 export function DashboardPage() {
   const { month } = useMonth();
-  const { currencyCode } = useCurrency();
+  const { currencyCode } = useSettings();
   const [dash, setDash] = useState<DashboardResponse | null>(null);
   const [recurring, setRecurring] = useState<RecurringStatus[]>([]);
   const [expenses, setExpenses] = useState<Expense[]>([]);

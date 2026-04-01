@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { z } from "zod";
-import { isValidISODate, parseISODateUtc, todayISODateUtc } from "../lib/dates.js";
+import { isValidISODate, parseISODateUtc, todayISODate } from "../lib/dates.js";
 import { prisma } from "../lib/prisma.js";
 import { dec } from "../lib/serialize.js";
 import { userId } from "../lib/userScope.js";
@@ -137,7 +137,9 @@ wishlistRouter.post("/:id/purchase", async (req, res, next) => {
     });
     if (!item) throw new HttpError(404, "Wishlist item not found");
 
-    const dateStr = parsed.data.date ?? todayISODateUtc();
+    const settings = await prisma.appSettings.findUnique({ where: { userId: uid } });
+    const timeZone = settings?.timeZone || "UTC";
+    const dateStr = parsed.data.date ?? todayISODate(timeZone);
     if (!isValidISODate(dateStr)) {
       throw new HttpError(400, "Invalid date; use YYYY-MM-DD");
     }

@@ -1,13 +1,13 @@
-import { CurrencyProvider } from "../context/CurrencyContext";
+import { SettingsProvider } from "../context/SettingsContext";
 import { MonthProvider } from "../context/MonthContext";
 import { AppLayout } from "./AppLayout";
 
 export function AppShell() {
   return (
-    <CurrencyProvider>
+    <SettingsProvider>
       <MonthProvider>
         <AppLayout />
       </MonthProvider>
-    </CurrencyProvider>
+    </SettingsProvider>
   );
 }

@@ -27,12 +27,16 @@ export function parseISODateUtc(s: string): Date {
   return new Date(Date.UTC(y, m - 1, d));
 }
 
-export function todayISODateUtc(): string {
-  const n = new Date();
-  const y = n.getUTCFullYear();
-  const m = String(n.getUTCMonth() + 1).padStart(2, "0");
-  const d = String(n.getUTCDate()).padStart(2, "0");
-  return `${y}-${m}-${d}`;
+export function todayISODate(timeZone: string): string {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(new Date());
+  
+  const p = Object.fromEntries(parts.map((p) => [p.type, p.value]));
+  return `${p.year}-${String(p.month).padStart(2, "0")}-${String(p.day).padStart(2, "0")}`;
 }
 
 export function monthFromISODate(iso: string): string {

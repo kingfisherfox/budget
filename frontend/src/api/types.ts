@@ -78,5 +78,6 @@ export type DashboardResponse = {
 export type AppSettings = {
   userId: string;
   currencyCode: string;
+  timeZone: string;
   domainName: string;
 };

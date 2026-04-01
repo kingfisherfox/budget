@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { apiDelete, apiGet, apiPost, apiPut, apiPatch } from "../api/client";
 import type { Category, RecurringTemplate } from "../api/types";
-import { useCurrency } from "../context/CurrencyContext";
+import { useSettings } from "../context/SettingsContext";
 import { useAuth } from "../context/AuthContext";
 import { SettingsCategoriesSection } from "../settings/SettingsCategoriesSection";
 import { SettingsAccountSection } from "../settings/SettingsAccountSection";
@@ -11,7 +11,7 @@ import { CURRENCY_CODES } from "../settings/currencies";
 
 export function SettingsPage() {
   const { user } = useAuth();
-  const { currencyCode, setCurrency } = useCurrency();
+  const { currencyCode, timeZone, updateSettings } = useSettings();
   const [domainName, setDomainName] = useState("");
   const [domainSaved, setDomainSaved] = useState(false);
   const [signupsEnabled, setSignupsEnabled] = useState(false);
@@ -192,11 +192,25 @@ export function SettingsPage() {
             <select
               className="h-10 w-full rounded-none border border-slate-200 bg-slate-50 px-3 text-sm transition-colors focus:border-indigo-600 focus:bg-white focus:outline-none"
               value={currencyCode}
-              onChange={(e) => void setCurrency(e.target.value)}
+              onChange={(e) => void updateSettings({ currencyCode: e.target.value })}
             >
               {CURRENCY_CODES.map((c) => (
                 <option key={c} value={c}>
                   {c}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="flex flex-col gap-1 text-sm font-medium text-slate-700">
+            <span className="text-xs uppercase tracking-wider text-slate-500">Timezone</span>
+            <select
+              className="h-10 w-full rounded-none border border-slate-200 bg-slate-50 px-3 text-sm transition-colors focus:border-indigo-600 focus:bg-white focus:outline-none"
+              value={timeZone}
+              onChange={(e) => void updateSettings({ timeZone: e.target.value })}
+            >
+              {Intl.supportedValuesOf("timeZone").map((tz) => (
+                <option key={tz} value={tz}>
+                  {tz}
                 </option>
               ))}
             </select>

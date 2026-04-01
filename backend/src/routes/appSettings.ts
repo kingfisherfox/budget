@@ -6,6 +6,7 @@ import { HttpError } from "../middleware/httpError.js";
 
 const patchSchema = z.object({
   currencyCode: z.string().min(3).max(3).toUpperCase().optional(),
+  timeZone: z.string().min(1).max(100).optional(),
   domainName: z.string().max(255).optional(),
 });
 
@@ -14,7 +15,7 @@ export const appSettingsRouter = Router();
 async function ensureSettings(uid: string) {
   await prisma.appSettings.upsert({
     where: { userId: uid },
-    create: { userId: uid, currencyCode: "THB", domainName: "" },
+    create: { userId: uid, currencyCode: "THB", timeZone: "UTC", domainName: "" },
     update: {},
   });
 }
@@ -42,6 +43,7 @@ appSettingsRouter.patch("/", async (req, res, next) => {
       where: { userId: uid },
       data: {
         currencyCode: parsed.data.currencyCode,
+        timeZone: parsed.data.timeZone,
         domainName: parsed.data.domainName,
       },
     });

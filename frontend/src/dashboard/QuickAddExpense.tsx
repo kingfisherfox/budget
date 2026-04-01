@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { apiPost } from "../api/client";
 import type { Category } from "../api/types";
-import { todayISODateUTC } from "../lib/month";
+import { todayISODate } from "../lib/month";
+import { useSettings } from "../context/SettingsContext";
 
 type Props = {
   categories: Category[];
@@ -9,6 +10,7 @@ type Props = {
 };
 
 export function QuickAddExpense({ categories, onAdded }: Props) {
+  const { timeZone } = useSettings();
   const [open, setOpen] = useState(false);
   const [name, setName] = useState("");
   const [categoryId, setCategoryId] = useState<string | null>(null);
@@ -38,7 +40,7 @@ export function QuickAddExpense({ categories, onAdded }: Props) {
         name: name.trim(),
         categoryId,
         amount: n,
-        date: todayISODateUTC(),
+        date: todayISODate(timeZone),
         note: note.trim() || null,
       });
       setName("");

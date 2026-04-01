@@ -1,12 +1,12 @@
 import { useCallback, useEffect, useState } from "react";
 import { apiDelete, apiGet, apiPost } from "../api/client";
 import type { Category, WishlistItem } from "../api/types";
-import { useCurrency } from "../context/CurrencyContext";
+import { useSettings } from "../context/SettingsContext";
 import { formatMoney } from "../lib/money";
-import { todayISODateUTC } from "../lib/month";
+import { todayISODate } from "../lib/month";
 
 export function WishlistPage() {
-  const { currencyCode } = useCurrency();
+  const { currencyCode } = useSettings();
   const [items, setItems] = useState<WishlistItem[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [err, setErr] = useState<string | null>(null);
@@ -190,8 +190,9 @@ function PurchaseModal({
   onClose: () => void;
   onDone: () => void;
 }) {
+  const { timeZone } = useSettings();
   const [amount, setAmount] = useState(item.amount);
-  const [date, setDate] = useState(todayISODateUTC());
+  const [date, setDate] = useState(todayISODate(timeZone));
   const [note, setNote] = useState(item.note ?? "");
   const [err, setErr] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);

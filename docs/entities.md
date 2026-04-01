@@ -40,6 +40,7 @@ One row per user (`userId` primary key).
 |-------|------|-------------|
 | userId | String | PK, FK → User |
 | currencyCode | String | ISO 4217; default **THB** |
+| timeZone | String | IANA time zone; default **UTC** |
 | domainName | String | Optional PWA / tunnel hint |
 
 ## Category
@@ -71,7 +72,7 @@ One monthly budget cap per category (same amount every month). Actual spend for 
 | name | String | Short label |
 | categoryId | String | FK → Category |
 | amount | Decimal | Positive spend |
-| date | Date | Calendar date only (no time); drives month grouping |
+| date | Date | Calendar date only (no time); drives month grouping. Created using the user's `timeZone` |
 | note | String? | Optional |
 | recurringExpenseId | String? | If set, this expense is the logged payment for that recurring template in `date`’s month |
 | recurringSubcategoryId | String? | If set, which **RecurringSubcategory** was chosen when logging (optional FK); expense **name** is copied from that subcategory at create time |

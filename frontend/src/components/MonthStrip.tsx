@@ -1,9 +1,11 @@
-import { currentMonthUTC, formatMonthDisplay, shiftMonth } from "../lib/month";
+import { currentMonth, formatMonthDisplay, shiftMonth } from "../lib/month";
 import { useMonth } from "../context/MonthContext";
+import { useSettings } from "../context/SettingsContext";
 
 export function MonthStrip() {
   const { month, setMonth } = useMonth();
-  const nowMonth = currentMonthUTC();
+  const { timeZone } = useSettings();
+  const nowMonth = currentMonth(timeZone);
   const showThisMonth = month !== nowMonth;
 
   return (
@@ -18,7 +20,7 @@ export function MonthStrip() {
       </button>
       <div className="flex min-w-0 flex-1 flex-col items-center justify-center gap-0.5">
         <span className="text-center text-sm font-bold capitalize tracking-tight text-neutral-900">
-          {formatMonthDisplay(month)}
+          {formatMonthDisplay(month, timeZone)}
         </span>
         {showThisMonth ? (
           <button

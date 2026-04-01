@@ -6,29 +6,31 @@ import {
   useMemo,
 } from "react";
 import { useSearchParams } from "react-router-dom";
-import { currentMonthUTC, isValidMonth } from "../lib/month";
+import { currentMonth, isValidMonth } from "../lib/month";
+import { useSettings } from "./SettingsContext";
 
 type MonthCtx = { month: string; setMonth: (m: string) => void };
 
 const MonthContext = createContext<MonthCtx | null>(null);
 
 export function MonthProvider({ children }: { children: React.ReactNode }) {
+  const { timeZone } = useSettings();
   const [search, setSearch] = useSearchParams();
   const raw = search.get("month");
-  const month = raw && isValidMonth(raw) ? raw : currentMonthUTC();
+  const month = raw && isValidMonth(raw) ? raw : currentMonth(timeZone);
 
   useEffect(() => {
     if (!raw || !isValidMonth(raw)) {
       setSearch(
         (prev) => {
           const n = new URLSearchParams(prev);
-          n.set("month", currentMonthUTC());
+          n.set("month", currentMonth(timeZone));
           return n;
         },
         { replace: true }
       );
     }
-  }, [raw, setSearch]);
+  }, [raw, setSearch, timeZone]);
 
   const setMonth = useCallback(
     (m: string) => {

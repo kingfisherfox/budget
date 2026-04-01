@@ -93,7 +93,9 @@ authRouter.post("/signup", async (req, res, next) => {
         username,
         passwordHash,
         role: isFirstUser ? "ADMIN" : "USER",
-        appSettings: { create: { currencyCode: "THB", domainName: "" } },
+        appSettings: {
+          create: { currencyCode: "THB", timeZone: "UTC", domainName: "" },
+        },
       },
     });
     await createSession(user.id, req, res);

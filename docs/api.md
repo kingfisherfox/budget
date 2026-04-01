@@ -33,8 +33,8 @@ Global configuration, editable only by `ADMIN` users.
 
 ## App settings
 
-- `GET /api/app-settings` → `{ userId, currencyCode, domainName }`
-- `PATCH /api/app-settings` body `{ currencyCode?, domainName? }` → updated row
+- `GET /api/app-settings` → `{ userId, currencyCode, timeZone, domainName }`
+- `PATCH /api/app-settings` body `{ currencyCode?, timeZone?, domainName? }` → updated row (`timeZone`: IANA name, e.g. `Asia/Bangkok`)
 
 ## Categories
 
