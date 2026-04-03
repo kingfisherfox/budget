@@ -11,7 +11,7 @@ const subcategoriesField = z.array(
   z.object({
     name: z.string().min(1).max(200),
     sortOrder: z.number().int().optional(),
-  })
+  }),
 );
 
 const createSchema = z.object({
@@ -32,7 +32,9 @@ const patchSchema = z.object({
   subcategories: subcategoriesField.optional(),
 });
 
-const subInclude = { orderBy: [{ sortOrder: "asc" as const }, { name: "asc" as const }] };
+const subInclude = {
+  orderBy: [{ sortOrder: "asc" as const }, { name: "asc" as const }],
+};
 
 export const recurringRouter = Router();
 
@@ -41,10 +43,12 @@ function mapSub(s: { id: string; name: string; sortOrder: number }) {
 }
 
 function mapRow(
-  r: NonNullable<Awaited<ReturnType<typeof prisma.recurringExpense.findFirst>>> & {
-    category: { id: string; name: string };
+  r: NonNullable<
+    Awaited<ReturnType<typeof prisma.recurringExpense.findFirst>>
+  > & {
+    category: { id: string; name: string; isIncome: boolean };
     subcategories: { id: string; name: string; sortOrder: number }[];
-  }
+  },
 ) {
   return {
     id: r.id,
@@ -70,7 +74,7 @@ recurringRouter.get("/status", async (req, res, next) => {
     const templates = await prisma.recurringExpense.findMany({
       where: { category: { userId: uid } },
       include: {
-        category: { select: { id: true, name: true } },
+        category: { select: { id: true, name: true, isIncome: true } },
         subcategories: subInclude,
       },
       orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
@@ -87,7 +91,7 @@ recurringRouter.get("/status", async (req, res, next) => {
         })
       )
         .map((x) => x.recurringExpenseId)
-        .filter(Boolean) as string[]
+        .filter(Boolean) as string[],
     );
     res.json(
       templates.map((t) => ({
@@ -100,7 +104,7 @@ recurringRouter.get("/status", async (req, res, next) => {
         category: t.category,
         subcategories: t.subcategories.map(mapSub),
         completed: t.isCommon ? false : completedIds.has(t.id),
-      }))
+      })),
     );
   } catch (e) {
     next(e);
@@ -113,7 +117,7 @@ recurringRouter.get("/", async (req, res, next) => {
     const rows = await prisma.recurringExpense.findMany({
       where: { category: { userId: uid } },
       include: {
-        category: { select: { id: true, name: true } },
+        category: { select: { id: true, name: true, isIncome: true } },
         subcategories: subInclude,
       },
       orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
@@ -129,7 +133,9 @@ recurringRouter.post("/", async (req, res, next) => {
     const uid = userId(req);
     const parsed = createSchema.safeParse(req.body);
     if (!parsed.success) {
-      throw new HttpError(400, "Validation failed", { errors: parsed.error.flatten() });
+      throw new HttpError(400, "Validation failed", {
+        errors: parsed.error.flatten(),
+      });
     }
     await prisma.category.findFirstOrThrow({
       where: { id: parsed.data.categoryId, userId: uid },
@@ -153,7 +159,7 @@ recurringRouter.post("/", async (req, res, next) => {
             : undefined,
       },
       include: {
-        category: { select: { id: true, name: true } },
+        category: { select: { id: true, name: true, isIncome: true } },
         subcategories: subInclude,
       },
     });
@@ -168,7 +174,9 @@ recurringRouter.patch("/:id", async (req, res, next) => {
     const uid = userId(req);
     const parsed = patchSchema.safeParse(req.body);
     if (!parsed.success) {
-      throw new HttpError(400, "Validation failed", { errors: parsed.error.flatten() });
+      throw new HttpError(400, "Validation failed", {
+        errors: parsed.error.flatten(),
+      });
     }
     const existing = await prisma.recurringExpense.findFirst({
       where: { id: req.params.id, category: { userId: uid } },
@@ -208,7 +216,7 @@ recurringRouter.patch("/:id", async (req, res, next) => {
       if (rest.sortOrder !== undefined) data.sortOrder = rest.sortOrder;
 
       const include = {
-        category: { select: { id: true, name: true } },
+        category: { select: { id: true, name: true, isIncome: true } },
         subcategories: subInclude,
       };
 

@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import type { Dispatch, SetStateAction } from "react";
 import type { Category, RecurringTemplate } from "../api/types";
 import { RecurringTemplateRow } from "./RecurringTemplateRow";
@@ -31,6 +32,20 @@ export function SettingsRecurringSection({
   onDeleteRecurring,
   onSaveSubcategories,
 }: Props) {
+  const sortedRecurring = useMemo(() => {
+    const compareByName = (a: RecurringTemplate, b: RecurringTemplate) =>
+      a.name.localeCompare(b.name, undefined, { sensitivity: "base" });
+
+    const incomeTemplates = recurring
+      .filter((item) => item.category.isIncome)
+      .sort(compareByName);
+    const expenseTemplates = recurring
+      .filter((item) => !item.category.isIncome)
+      .sort(compareByName);
+
+    return [...incomeTemplates, ...expenseTemplates];
+  }, [recurring]);
+
   return (
     <section className="flex flex-col gap-4 rounded-none border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
       <h2 className="text-xs font-bold uppercase tracking-widest text-slate-400">
@@ -99,7 +114,7 @@ export function SettingsRecurringSection({
         </button>
       </div>
       <ul className="flex flex-col gap-2 pt-2">
-        {recurring.map((r) => (
+        {sortedRecurring.map((r) => (
           <RecurringTemplateRow
             key={r.id}
             item={r}

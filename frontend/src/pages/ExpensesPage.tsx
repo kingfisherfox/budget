@@ -68,44 +68,42 @@ export function ExpensesPage() {
                 {groupedItems[date].map((e) => (
                   <li
                     key={e.id}
-                    className="flex flex-col gap-1.5 px-3 py-2.5 transition-colors hover:bg-slate-50 sm:px-4 sm:py-3"
+                    className="flex flex-col gap-2 px-2 py-2 transition-colors hover:bg-slate-50 sm:px-3 sm:py-2.5"
                   >
-                    <div className="flex min-w-0 items-center gap-2">
-                      <span className="min-w-0 flex-1 truncate text-sm font-bold text-slate-900">
-                        {e.name || "Unnamed"}
-                      </span>
-                      <span className="shrink-0 text-sm font-semibold tabular-nums text-slate-900">
-                        {formatMoney(e.amount, currencyCode)}
-                      </span>
-                    </div>
-                    <div className="flex min-w-0 items-center justify-between gap-2">
+                    <div className="flex min-w-0 items-center gap-1.5 sm:gap-2">
                       <div className="flex min-w-0 flex-1 flex-nowrap items-center gap-1.5 overflow-hidden">
-                        <span className="max-w-[55%] shrink truncate whitespace-nowrap bg-slate-100 px-1.5 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-slate-600">
+                        <span className="min-w-0 truncate text-sm font-bold text-slate-900">
+                          {e.name || "Unnamed"}
+                        </span>
+                        {e.category.isIncome ? (
+                          <span className="shrink-0 whitespace-nowrap bg-green-100 px-1 py-0.5 text-[9px] font-bold uppercase text-green-700">
+                            Income
+                          </span>
+                        ) : null}
+                        <span className="max-w-[32%] shrink truncate whitespace-nowrap text-[11px] font-semibold uppercase tracking-wide text-slate-500">
                           {e.category.name}
                         </span>
-                        <span className="shrink-0 whitespace-nowrap bg-slate-50 px-1.5 py-0.5 text-[10px] font-medium text-slate-500 tabular-nums">
-                          {e.date}
+                        <span className="ml-auto shrink-0 text-xs font-semibold tabular-nums text-slate-900">
+                          {formatMoney(e.amount, currencyCode)}
                         </span>
                       </div>
-                      <div className="flex shrink-0 items-center gap-1">
-                        <button
-                          type="button"
-                          className="h-8 rounded-none border border-slate-200 bg-white px-2.5 text-[10px] font-bold uppercase tracking-wide text-slate-700 transition-colors hover:border-slate-400 hover:bg-slate-50"
-                          onClick={() => setEditing(e)}
-                        >
-                          Edit
-                        </button>
-                        <button
-                          type="button"
-                          className="h-8 rounded-none border border-red-200 bg-white px-2.5 text-[10px] font-bold uppercase tracking-wide text-red-600 transition-colors hover:border-red-400 hover:bg-red-50"
-                          onClick={() => setPendingDelete(e)}
-                        >
-                          Del
-                        </button>
-                      </div>
+                      <button
+                        type="button"
+                        className="h-8 shrink-0 rounded-none border border-slate-200 bg-white px-2 text-[10px] font-bold uppercase tracking-wide text-slate-700 transition-colors hover:border-indigo-300 hover:bg-indigo-50 sm:h-9 sm:px-2 sm:text-xs"
+                        onClick={() => setEditing(e)}
+                      >
+                        Edit
+                      </button>
+                      <button
+                        type="button"
+                        className="h-8 shrink-0 rounded-none border border-red-200 bg-white px-2 text-[10px] font-bold uppercase tracking-wide text-red-600 transition-colors hover:border-red-400 hover:bg-red-50 sm:h-9 sm:px-3 sm:text-xs"
+                        onClick={() => setPendingDelete(e)}
+                      >
+                        Del
+                      </button>
                     </div>
                     {e.note ? (
-                      <p className="truncate text-xs text-slate-500">{e.note}</p>
+                      <p className="pl-0.5 text-xs text-slate-500 truncate">{e.note}</p>
                     ) : null}
                   </li>
                 ))}

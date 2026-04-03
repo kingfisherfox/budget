@@ -39,7 +39,7 @@ dashboardRouter.get("/", async (req, res, next) => {
       _sum: { amount: true },
     });
     const actualByCat = new Map(
-      agg.map((a) => [a.categoryId, a._sum.amount?.toNumber() ?? 0])
+      agg.map((a) => [a.categoryId, a._sum.amount?.toNumber() ?? 0]),
     );
 
     const daysInMonth: { date: string; total: number }[] = [];
@@ -53,7 +53,7 @@ dashboardRouter.get("/", async (req, res, next) => {
     const monthExpenses = await prisma.expense.findMany({
       where: {
         date: { gte: start, lt: endExclusive },
-        category: { userId: uid },
+        category: { userId: uid, isIncome: false },
       },
       select: { date: true, amount: true },
     });
@@ -66,19 +66,26 @@ dashboardRouter.get("/", async (req, res, next) => {
       slot.total = dailyMap.get(slot.date) ?? 0;
     }
 
+// -------- THIS CODE BELOW IS LOCKED AND CAN NOT BE EDITED UNLESS IT IS UNLOCKED BY THE USER -------------
     let totalBudget = 0;
     let totalActual = 0;
+    let totalIncome = 0;
     const categoryRows = categories.map((c) => {
       const budget = c.budget?.monthlyAmount.toNumber() ?? 0;
       const actual = actualByCat.get(c.id) ?? 0;
-      totalBudget += budget;
-      totalActual += actual;
+      if (!c.isIncome) {
+        totalBudget += budget;
+        totalActual += actual;
+      } else {
+        totalIncome += actual;
+      }
       const variancePercent =
         budget === 0 ? null : ((actual - budget) / budget) * 100;
       return {
         categoryId: c.id,
         name: c.name,
         color: c.color,
+        isIncome: c.isIncome,
         budget,
         actual,
         variancePercent,
@@ -98,8 +105,9 @@ dashboardRouter.get("/", async (req, res, next) => {
         date: x.date,
         total: x.total,
       })),
-      totals: { budget: totalBudget, actual: totalActual },
+      totals: { budget: totalBudget, actual: totalActual, income: totalIncome },
     });
+// ----------- THE CODE ABOVE IS LOCKED AND CAN NOT BE EDITED UNLESS IT IS UNLOCKED BY THE USER ------------
   } catch (e) {
     next(e);
   }

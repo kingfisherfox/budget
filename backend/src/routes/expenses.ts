@@ -34,8 +34,8 @@ export const expensesRouter = Router();
 
 function mapExpense(
   e: NonNullable<Awaited<ReturnType<typeof prisma.expense.findFirst>>> & {
-    category: { id: string; name: string };
-  }
+    category: { id: string; name: string; isIncome: boolean };
+  },
 ) {
   return {
     id: e.id,
@@ -54,7 +54,7 @@ function mapExpense(
 async function assertRecurringMonthUnique(
   uid: string,
   recurringExpenseId: string,
-  expenseDate: Date
+  expenseDate: Date,
 ): Promise<void> {
   const month = monthFromISODate(expenseDate.toISOString().slice(0, 10));
   const { start, endExclusive } = monthUtcRange(month);
@@ -66,11 +66,17 @@ async function assertRecurringMonthUnique(
     },
   });
   if (existing) {
-    throw new HttpError(409, "This recurring expense is already logged for that month");
+    throw new HttpError(
+      409,
+      "This recurring expense is already logged for that month",
+    );
   }
 }
 
-async function assertCategoryOwned(uid: string, categoryId: string): Promise<void> {
+async function assertCategoryOwned(
+  uid: string,
+  categoryId: string,
+): Promise<void> {
   const c = await prisma.category.findFirst({
     where: { id: categoryId, userId: uid },
   });
@@ -90,7 +96,9 @@ expensesRouter.get("/", async (req, res, next) => {
         date: { gte: start, lt: endExclusive },
         category: { userId: uid },
       },
-      include: { category: { select: { id: true, name: true } } },
+      include: {
+        category: { select: { id: true, name: true, isIncome: true } },
+      },
       orderBy: [{ date: "desc" }, { createdAt: "desc" }],
     });
     res.json(rows.map((r) => mapExpense(r)));
@@ -104,7 +112,9 @@ expensesRouter.get("/:id", async (req, res, next) => {
     const uid = userId(req);
     const row = await prisma.expense.findFirst({
       where: { id: req.params.id, category: { userId: uid } },
-      include: { category: { select: { id: true, name: true } } },
+      include: {
+        category: { select: { id: true, name: true, isIncome: true } },
+      },
     });
     if (!row) throw new HttpError(404, "Expense not found");
     res.json(mapExpense(row));
@@ -118,7 +128,9 @@ expensesRouter.post("/", async (req, res, next) => {
     const uid = userId(req);
     const parsed = createSchema.safeParse(req.body);
     if (!parsed.success) {
-      throw new HttpError(400, "Validation failed", { errors: parsed.error.flatten() });
+      throw new HttpError(400, "Validation failed", {
+        errors: parsed.error.flatten(),
+      });
     }
     if (!isValidISODate(parsed.data.date)) {
       throw new HttpError(400, "Invalid date; use YYYY-MM-DD");
@@ -126,7 +138,8 @@ expensesRouter.post("/", async (req, res, next) => {
     const d = parseISODateUtc(parsed.data.date);
     const categoryId = parsed.data.categoryId;
     const recurringExpenseId = parsed.data.recurringExpenseId ?? undefined;
-    const recurringSubcategoryIdBody = parsed.data.recurringSubcategoryId ?? undefined;
+    const recurringSubcategoryIdBody =
+      parsed.data.recurringSubcategoryId ?? undefined;
 
     await assertCategoryOwned(uid, categoryId);
 
@@ -142,16 +155,24 @@ expensesRouter.post("/", async (req, res, next) => {
       });
       if (!rec) throw new HttpError(400, "Recurring expense not found");
       if (rec.categoryId !== categoryId) {
-        throw new HttpError(400, "categoryId must match recurring template category");
+        throw new HttpError(
+          400,
+          "categoryId must match recurring template category",
+        );
       }
       if (!rec.isCommon) {
         await assertRecurringMonthUnique(uid, recurringExpenseId, d);
       }
       if (rec.subcategories.length > 0) {
         if (!recurringSubcategoryIdBody) {
-          throw new HttpError(400, "This recurring template requires a subcategory");
+          throw new HttpError(
+            400,
+            "This recurring template requires a subcategory",
+          );
         }
-        const sub = rec.subcategories.find((s) => s.id === recurringSubcategoryIdBody);
+        const sub = rec.subcategories.find(
+          (s) => s.id === recurringSubcategoryIdBody,
+        );
         if (!sub) {
           throw new HttpError(400, "Invalid recurring subcategory");
         }
@@ -159,12 +180,18 @@ expensesRouter.post("/", async (req, res, next) => {
         recurringSubcategoryId = sub.id;
       } else {
         if (recurringSubcategoryIdBody) {
-          throw new HttpError(400, "This recurring template has no subcategories");
+          throw new HttpError(
+            400,
+            "This recurring template has no subcategories",
+          );
         }
         if (!expenseName) expenseName = rec.name;
       }
     } else if (recurringSubcategoryIdBody) {
-      throw new HttpError(400, "recurringSubcategoryId requires recurringExpenseId");
+      throw new HttpError(
+        400,
+        "recurringSubcategoryId requires recurringExpenseId",
+      );
     }
 
     const row = await prisma.expense.create({
@@ -177,7 +204,9 @@ expensesRouter.post("/", async (req, res, next) => {
         recurringExpenseId,
         recurringSubcategoryId,
       },
-      include: { category: { select: { id: true, name: true } } },
+      include: {
+        category: { select: { id: true, name: true, isIncome: true } },
+      },
     });
     res.status(201).json(mapExpense(row));
   } catch (e) {
@@ -190,7 +219,9 @@ expensesRouter.patch("/:id", async (req, res, next) => {
     const uid = userId(req);
     const parsed = patchSchema.safeParse(req.body);
     if (!parsed.success) {
-      throw new HttpError(400, "Validation failed", { errors: parsed.error.flatten() });
+      throw new HttpError(400, "Validation failed", {
+        errors: parsed.error.flatten(),
+      });
     }
     const current = await prisma.expense.findFirst({
       where: { id: req.params.id, category: { userId: uid } },
@@ -219,7 +250,10 @@ expensesRouter.patch("/:id", async (req, res, next) => {
       if (rec) {
         const cat = parsed.data.categoryId ?? current.categoryId;
         if (cat !== rec.categoryId) {
-          throw new HttpError(400, "categoryId must match recurring template category");
+          throw new HttpError(
+            400,
+            "categoryId must match recurring template category",
+          );
         }
         if (!rec.isCommon) {
           const m = monthFromISODate(dateVal.toISOString().slice(0, 10));
@@ -233,7 +267,10 @@ expensesRouter.patch("/:id", async (req, res, next) => {
             },
           });
           if (clash) {
-            throw new HttpError(409, "Another expense already logs this recurring for that month");
+            throw new HttpError(
+              409,
+              "Another expense already logs this recurring for that month",
+            );
           }
         }
       }
@@ -248,7 +285,9 @@ expensesRouter.patch("/:id", async (req, res, next) => {
         date: nextDate ?? undefined,
         note: parsed.data.note === null ? null : parsed.data.note,
       },
-      include: { category: { select: { id: true, name: true } } },
+      include: {
+        category: { select: { id: true, name: true, isIncome: true } },
+      },
     });
     res.json(mapExpense(row));
   } catch (e) {

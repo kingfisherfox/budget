@@ -8,7 +8,11 @@ import { prisma } from "../lib/prisma.js";
 import { HttpError } from "../middleware/httpError.js";
 
 const loginSchema = z.object({
-  username: z.string().min(3).max(64).regex(/^[a-zA-Z0-9_-]+$/),
+  username: z
+    .string()
+    .min(3)
+    .max(64)
+    .regex(/^[a-zA-Z0-9_-]+$/),
   password: z.string().min(8).max(128),
 });
 
@@ -26,7 +30,11 @@ function cookieOpts(req: Request): CookieOptions {
   };
 }
 
-async function createSession(userId: string, req: Request, res: Response): Promise<void> {
+async function createSession(
+  userId: string,
+  req: Request,
+  res: Response,
+): Promise<void> {
   const token = randomBytes(32).toString("hex");
   const expiresAt = new Date(Date.now() + SESSION_DAYS * 24 * 60 * 60 * 1000);
   await prisma.session.create({
@@ -48,14 +56,20 @@ authRouter.get("/me", async (req: Request, res: Response, next) => {
     });
     if (!session || session.expiresAt < new Date()) {
       if (session) {
-        await prisma.session.delete({ where: { id: session.id } }).catch(() => {});
+        await prisma.session
+          .delete({ where: { id: session.id } })
+          .catch(() => {});
       }
       res.clearCookie(SESSION_COOKIE, { path: "/" });
       res.json({ user: null });
       return;
     }
     res.json({
-      user: { id: session.user.id, username: session.user.username, role: session.user.role },
+      user: {
+        id: session.user.id,
+        username: session.user.username,
+        role: session.user.role,
+      },
     });
   } catch (e) {
     next(e);
@@ -66,12 +80,18 @@ authRouter.post("/signup", async (req, res, next) => {
   try {
     const parsed = loginSchema.safeParse(req.body);
     if (!parsed.success) {
-      throw new HttpError(400, "Validation failed", { errors: parsed.error.flatten() });
+      throw new HttpError(400, "Validation failed", {
+        errors: parsed.error.flatten(),
+      });
     }
 
-    let settings = await prisma.systemSettings.findUnique({ where: { id: "1" } });
+    let settings = await prisma.systemSettings.findUnique({
+      where: { id: "1" },
+    });
     if (!settings) {
-      settings = await prisma.systemSettings.create({ data: { id: "1", signupsEnabled: true } });
+      settings = await prisma.systemSettings.create({
+        data: { id: "1", signupsEnabled: true },
+      });
     }
 
     const userCount = await prisma.user.count();
@@ -99,7 +119,11 @@ authRouter.post("/signup", async (req, res, next) => {
       },
     });
     await createSession(user.id, req, res);
-    res.status(201).json({ user: { id: user.id, username: user.username, role: user.role } });
+    res
+      .status(201)
+      .json({
+        user: { id: user.id, username: user.username, role: user.role },
+      });
   } catch (e) {
     next(e);
   }
@@ -109,15 +133,22 @@ authRouter.post("/login", async (req, res, next) => {
   try {
     const parsed = loginSchema.safeParse(req.body);
     if (!parsed.success) {
-      throw new HttpError(400, "Validation failed", { errors: parsed.error.flatten() });
+      throw new HttpError(400, "Validation failed", {
+        errors: parsed.error.flatten(),
+      });
     }
     const username = parsed.data.username.toLowerCase();
     const user = await prisma.user.findUnique({ where: { username } });
-    if (!user || !(await bcrypt.compare(parsed.data.password, user.passwordHash))) {
+    if (
+      !user ||
+      !(await bcrypt.compare(parsed.data.password, user.passwordHash))
+    ) {
       throw new HttpError(401, "Invalid username or password");
     }
     await createSession(user.id, req, res);
-    res.json({ user: { id: user.id, username: user.username, role: user.role } });
+    res.json({
+      user: { id: user.id, username: user.username, role: user.role },
+    });
   } catch (e) {
     next(e);
   }

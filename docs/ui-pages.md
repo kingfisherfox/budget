@@ -22,9 +22,11 @@ Shared **month** state (URL query `?month=YYYY-MM` or React context synced with 
 
 **Settings composition:** `frontend/src/pages/SettingsPage.tsx` loads data and handlers; **Account** (username, log out) in `frontend/src/settings/SettingsAccountSection.tsx`; **Categories** in `frontend/src/settings/SettingsCategoriesSection.tsx`; **Recurring** in `frontend/src/settings/SettingsRecurringSection.tsx` (optional **subcategories** textarea when adding a template; per-template **Subs** editor in `frontend/src/settings/RecurringTemplateRow.tsx` → `PATCH /api/recurring-expenses/:id` with `subcategories`). Currency options come from `frontend/src/settings/currencies.ts`.
 
+- **Settings ordering rules:** In Settings, category lists are deterministic: the income category is pinned to the top, and all remaining categories are sorted A-Z. Recurring templates are shown with all income templates first (A-Z), followed by expense templates (A-Z).
+
 **Dashboard recurring:** `frontend/src/dashboard/RecurringSection.tsx` — if a template has subcategories, the log modal shows a **Subcategory** `<select>` before amount; `POST /api/expenses` sends `recurringSubcategoryId` so the expense **name** is the chosen subcategory (e.g. **Villa**).
 
-**Dashboard category pie (`DashboardExpenseList`):** The **This month** donut sums spend by **category**. Tap a **category row** or a **pie slice** to drill into **labels** (aggregated **expense `name`** for that category in the selected month). The header shows **← CategoryName** — tap it to return to the all-categories view. Pie slice labels (name + %) appear when there are at most 10 slices; the list always shows each label with amount and **% of category** in drill mode.
+**Dashboard category pie (`DashboardExpenseList`):** The **This month** card shows a left-aligned list and a solid pie on the right. The list displays color swatch, name, and amount (plain number formatting, no currency symbol). The pie has no connector lines, no slice labels, and no on-chart percentages. Tap a **category row** or **pie slice** to drill into **labels** (aggregated **expense `name`** for that category in the selected month). In drill mode, a dedicated **← Back** control appears above the left-side subcategory label (not in the subheading line) to avoid layout shift in the header area. Each drill row still shows amount and percent share for the selected category.
 
 **Auth:** `frontend/src/context/AuthContext.tsx` loads `/api/auth/me` on startup. `RequireAuth` wraps the main shell (`AppShell` = `CurrencyProvider` + `MonthProvider` + `AppLayout`). Unauthenticated users are redirected to `/account`.
 
@@ -32,14 +34,65 @@ Shared **month** state (URL query `?month=YYYY-MM` or React context synced with 
 
 ## Responsive notes (Expenses list)
 
-- Rows use `flex-nowrap` with **truncated** expense name and category pill; amount and actions stay on one line per band (compact padding on small screens).
-- Notes truncate to one line when present.
+- Expense list items use a compact row layout. They feature truncated expense names and categories, with Edit and Del actions on a single line. The date pill is included inline. Notes are truncated to a single line directly beneath the main row content.
 
 ## Responsive notes (Settings categories)
 
 - Each category is a **single horizontal row**: fixed-width truncated name, flexible budget input, compact Save / Del actions (no wrapping).
 
+## Responsive notes (Wishlist items)
+
+- Wishlist items use a compact row layout similar to recurring templates. They feature truncated item names and categories, with Buy and Del actions on a single line. Notes are truncated to a single line directly beneath the main row content.
+
 ## Dashboard UX
 
-- Recurring buttons: show only **incomplete** for selected month by default; toggle **Show hidden** reveals completed for review.
+- Recurring/Common buttons (`frontend/src/dashboard/RecurringSection.tsx`):
+  - Month label is hidden.
+  - "Common" items are always displayed at the top, alphabetically sorted A-Z.
+  - "Uncommon" (regular recurring) items are displayed below common items, separated by a thin dividing line (only visible if both common and uncommon items exist in the view), alphabetically sorted A-Z.
+  - Labels on items: "Common" labels denote general usage; however, if the item represents an income category, the label displays as "Income" instead of "Common".
+  - Show only **incomplete** for selected month by default (unless marked as Common, which are always visible); toggle **Show hidden** reveals completed items for review.
 - Quick-add: pick category (button), amount, optional note; date defaults to today.
+- Month overview card (`frontend/src/dashboard/DashboardSummary.tsx`): two bars are shown:
+  - **Actual vs Budget** (orange actual, green remaining, red overspend).
+  - **Income vs Saved** (grey spent, black lost savings from overspend, blue remaining saved).
+  - Values are displayed as plain numbers (no currency symbol), using grouped thousands and 2 decimals.
+  - A moving separator line marks the boundary.
+
+## Month Overview Documentation
+
+The Month Overview component (`frontend/src/dashboard/DashboardSummary.tsx`) provides a dual-bar visualization comparing spending against the budget, and income against the amount saved.
+
+### Expected Behaviors
+
+#### Top Bar (Actual vs Budget)
+- **Labels:** ACTUAL (top) and BUDGET (bottom).
+- **Segments:**
+  - **Actual Spend:** Amber (`bg-amber-400`). Represents the current recorded spend, capped visually at the budget amount.
+  - **Remaining Budget:** Emerald (`bg-emerald-400`). Represents the remaining available budget. Shrinks as actual spend increases.
+  - **Overspend:** Red (`bg-red-500`). Represents any spend beyond the budget.
+- **Overspend Behavior:**
+  - The vertical separator moves past the budget boundary.
+  - The BUDGET label value text turns red.
+- **Connectors:** A grey horizontal connector line extends from the top "ACTUAL" label to perfectly align with the vertical bar separator.
+
+#### Bottom Bar (Income vs Saved)
+- **Labels:** INCOME (top) and SAVED (bottom).
+- **Calculation:** Saved = Income - Actual Spend.
+- **Segments:**
+  - **Spent Income:** Grey (`bg-slate-500`). Represents the portion of income consumed by normal spending (up to the budget limit).
+  - **Lost Savings:** Black (`bg-slate-900`). Represents savings lost due to overspending (actual spend beyond the budget).
+  - **Remaining Saved:** Blue (`bg-blue-600`). Represents unspent income.
+- **Connectors:** A grey horizontal connector line extends from the bottom "SAVED" label to perfectly align with the vertical bar separator.
+
+### Edge Cases Handled
+- **No spend yet:** Actual/Spent segments collapse to 0. Bars show full Emerald (Budget) and full Blue (Income).
+- **Spend below budget:** Standard behavior.
+- **Spend exactly equal to budget:** Emerald segment collapses to 0.
+- **Spend above budget:** Overspend kicks in (Red on top, Black on bottom).
+- **Income entered as zero:** Bar segments scale proportionately against the overall maximum value across Actual/Budget/Income, preventing layout breaks.
+- **Saved value becoming zero or negative:** Blue segment collapses to 0.
+
+### Technical Implementation Notes
+- **Scaling:** A single `scaleMax` (`Math.max(budget, actual, income, 1)`) is calculated so both bars share the exact same proportional width scaling.
+- **Alignment:** The layout uses absolute positioning layers within a `relative` container to ensure the bar stretches `100%` across the card underneath the label text, creating the visual "cutout" effect using a `z-10 bg-white` text wrapper.

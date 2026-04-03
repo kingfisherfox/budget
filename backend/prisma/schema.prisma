@@ -47,6 +47,7 @@ model Category {
   name       String
   color      String?
   sortOrder  Int      @default(0)
+  isIncome   Boolean  @default(false)
   createdAt  DateTime @default(now())
   userId     String
   user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)

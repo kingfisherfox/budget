@@ -44,34 +44,46 @@ export function SettingsCategoriesSection({
       </div>
       <ul className="flex flex-col divide-y divide-slate-100">
         {categories.map((c) => (
-          <li key={c.id} className="flex min-w-0 items-center gap-2 py-3 sm:gap-3">
-            <span className="w-[30%] max-w-[7.5rem] shrink-0 truncate whitespace-nowrap text-xs font-bold uppercase tracking-wide text-slate-900 sm:max-w-[9rem] sm:text-sm">
+          <li
+            key={c.id}
+            className="flex min-w-0 items-center gap-2 py-3 sm:gap-3"
+          >
+            <span className="w-[30%] max-w-[7.5rem] shrink-0 truncate whitespace-nowrap text-xs font-bold uppercase tracking-wide text-slate-900 sm:max-w-[9rem] sm:text-sm flex items-center gap-1.5">
               {c.name}
+              {c.isIncome ? (
+                <span className="shrink-0 whitespace-nowrap bg-green-100 px-1 py-0.5 text-[9px] font-bold uppercase text-green-700">
+                  Income
+                </span>
+              ) : null}
             </span>
-            <input
-              className="h-9 min-w-0 flex-1 rounded-none border border-slate-200 bg-slate-50 px-2 text-sm tabular-nums transition-colors focus:border-indigo-600 focus:bg-white focus:outline-none sm:max-w-[7rem] sm:flex-none sm:px-3"
-              placeholder="Budget"
-              inputMode="decimal"
-              aria-label={`Budget for ${c.name}`}
-              value={budgets[c.id] ?? ""}
-              onChange={(e) =>
-                setBudgets((b) => ({ ...b, [c.id]: e.target.value }))
-              }
-            />
-            <button
-              type="button"
-              className="h-9 shrink-0 rounded-none border border-slate-200 bg-white px-2 text-[10px] font-bold uppercase tracking-wide text-slate-700 transition-colors hover:border-slate-400 hover:bg-slate-50 sm:px-3 sm:text-xs"
-              onClick={() => void onSaveBudget(c.id)}
-            >
-              Save
-            </button>
-            <button
-              type="button"
-              className="h-9 shrink-0 rounded-none border border-red-200 bg-white px-2 text-[10px] font-bold uppercase tracking-wide text-red-600 transition-colors hover:border-red-400 hover:bg-red-50 sm:px-3 sm:text-xs"
-              onClick={() => void onDeleteCategory(c.id)}
-            >
-              Del
-            </button>
+            {!c.isIncome ? (
+              <>
+                <input
+                  className="h-9 min-w-0 flex-1 rounded-none border border-slate-200 bg-slate-50 px-2 text-sm tabular-nums transition-colors focus:border-indigo-600 focus:bg-white focus:outline-none sm:max-w-[7rem] sm:flex-none sm:px-3"
+                  placeholder="Budget"
+                  inputMode="decimal"
+                  aria-label={`Budget for ${c.name}`}
+                  value={budgets[c.id] ?? ""}
+                  onChange={(e) =>
+                    setBudgets((b) => ({ ...b, [c.id]: e.target.value }))
+                  }
+                />
+                <button
+                  type="button"
+                  className="h-9 shrink-0 rounded-none border border-slate-200 bg-white px-2 text-[10px] font-bold uppercase tracking-wide text-slate-700 transition-colors hover:border-slate-400 hover:bg-slate-50 sm:px-3 sm:text-xs"
+                  onClick={() => void onSaveBudget(c.id)}
+                >
+                  Save
+                </button>
+                <button
+                  type="button"
+                  className="h-9 shrink-0 rounded-none border border-red-200 bg-white px-2 text-[10px] font-bold uppercase tracking-wide text-red-600 transition-colors hover:border-red-400 hover:bg-red-50 sm:px-3 sm:text-xs"
+                  onClick={() => void onDeleteCategory(c.id)}
+                >
+                  Del
+                </button>
+              </>
+            ) : null}
           </li>
         ))}
       </ul>

@@ -3,6 +3,7 @@ export type Category = {
   name: string;
   color: string | null;
   sortOrder: number;
+  isIncome: boolean;
   createdAt: string;
   budget: { monthlyAmount: string } | null;
 };
@@ -23,7 +24,7 @@ export type Expense = {
   recurringExpenseId: string | null;
   recurringSubcategoryId: string | null;
   createdAt: string;
-  category: { id: string; name: string };
+  category: { id: string; name: string; isIncome: boolean };
 };
 
 export type RecurringStatus = {
@@ -33,7 +34,7 @@ export type RecurringStatus = {
   defaultAmount: string | null;
   isCommon: boolean;
   sortOrder: number;
-  category: { id: string; name: string };
+  category: { id: string; name: string; isIncome: boolean };
   subcategories: RecurringSubcategory[];
   completed: boolean;
 };
@@ -46,7 +47,7 @@ export type RecurringTemplate = {
   isCommon: boolean;
   sortOrder: number;
   createdAt: string;
-  category: { id: string; name: string };
+  category: { id: string; name: string; isIncome: boolean };
   subcategories: RecurringSubcategory[];
 };
 
@@ -57,7 +58,7 @@ export type WishlistItem = {
   amount: string;
   note: string | null;
   createdAt: string;
-  category: { id: string; name: string };
+  category: { id: string; name: string; isIncome: boolean };
 };
 
 export type DashboardResponse = {
@@ -67,12 +68,13 @@ export type DashboardResponse = {
     categoryId: string;
     name: string;
     color: string | null;
+    isIncome?: boolean;
     budget: number;
     actual: number;
     variancePercent: number | null;
   }[];
   dailySpend: { date: string; total: number }[];
-  totals: { budget: number; actual: number };
+  totals: { budget: number; actual: number; income: number };
 };
 
 export type AppSettings = {

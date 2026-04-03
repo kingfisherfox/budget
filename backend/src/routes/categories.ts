@@ -24,6 +24,7 @@ type CatRow = {
   name: string;
   color: string | null;
   sortOrder: number;
+  isIncome: boolean;
   createdAt: Date;
   budget: { monthlyAmount: { toString(): string } } | null;
 };
@@ -34,6 +35,7 @@ function mapCategory(c: CatRow) {
     name: c.name,
     color: c.color,
     sortOrder: c.sortOrder,
+    isIncome: c.isIncome,
     createdAt: c.createdAt,
     budget: c.budget ? { monthlyAmount: dec(c.budget.monthlyAmount) } : null,
   };
@@ -42,11 +44,25 @@ function mapCategory(c: CatRow) {
 categoriesRouter.get("/", async (req, res, next) => {
   try {
     const uid = userId(req);
-    const rows = await prisma.category.findMany({
+    let rows = await prisma.category.findMany({
       where: { userId: uid },
       include: { budget: true },
       orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
     });
+
+    const hasIncome = rows.some((r) => r.isIncome);
+    if (!hasIncome) {
+      const incomeCategory = await prisma.category.create({
+        data: {
+          name: "Income",
+          isIncome: true,
+          userId: uid,
+        },
+        include: { budget: true },
+      });
+      rows.push(incomeCategory);
+    }
+
     res.json(rows.map((r) => mapCategory(r)));
   } catch (e) {
     next(e);
@@ -57,7 +73,9 @@ categoriesRouter.post("/", async (req, res, next) => {
   try {
     const parsed = createSchema.safeParse(req.body);
     if (!parsed.success) {
-      throw new HttpError(400, "Validation failed", { errors: parsed.error.flatten() });
+      throw new HttpError(400, "Validation failed", {
+        errors: parsed.error.flatten(),
+      });
     }
     const uid = userId(req);
     const c = await prisma.category.create({
@@ -79,7 +97,9 @@ categoriesRouter.put("/:id/budget", async (req, res, next) => {
   try {
     const parsed = budgetSchema.safeParse(req.body);
     if (!parsed.success) {
-      throw new HttpError(400, "Validation failed", { errors: parsed.error.flatten() });
+      throw new HttpError(400, "Validation failed", {
+        errors: parsed.error.flatten(),
+      });
     }
     const uid = userId(req);
     await prisma.category.findFirstOrThrow({
@@ -103,7 +123,9 @@ categoriesRouter.patch("/:id", async (req, res, next) => {
   try {
     const parsed = patchSchema.safeParse(req.body);
     if (!parsed.success) {
-      throw new HttpError(400, "Validation failed", { errors: parsed.error.flatten() });
+      throw new HttpError(400, "Validation failed", {
+        errors: parsed.error.flatten(),
+      });
     }
     const uid = userId(req);
     const found = await prisma.category.findFirst({
@@ -131,15 +153,24 @@ categoriesRouter.delete("/:id", async (req, res, next) => {
       where: { id: req.params.id, userId: uid },
     });
     if (!cat) throw new HttpError(404, "Category not found");
-    const count = await prisma.expense.count({ where: { categoryId: req.params.id } });
+    const count = await prisma.expense.count({
+      where: { categoryId: req.params.id },
+    });
     if (count > 0) {
-      throw new HttpError(409, "Category has expenses; reassign or delete expenses first");
+      throw new HttpError(
+        409,
+        "Category has expenses; reassign or delete expenses first",
+      );
     }
-    const rec = await prisma.recurringExpense.count({ where: { categoryId: req.params.id } });
+    const rec = await prisma.recurringExpense.count({
+      where: { categoryId: req.params.id },
+    });
     if (rec > 0) {
       throw new HttpError(409, "Category is used by recurring expenses");
     }
-    const wl = await prisma.wishlistItem.count({ where: { categoryId: req.params.id } });
+    const wl = await prisma.wishlistItem.count({
+      where: { categoryId: req.params.id },
+    });
     if (wl > 0) {
       throw new HttpError(409, "Category is used by wishlist items");
     }

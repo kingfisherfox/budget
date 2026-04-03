@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { apiDelete, apiGet, apiPost, apiPut, apiPatch } from "../api/client";
 import type { Category, RecurringTemplate } from "../api/types";
 import { useSettings } from "../context/SettingsContext";
@@ -8,6 +8,15 @@ import { SettingsAccountSection } from "../settings/SettingsAccountSection";
 import { SettingsRecurringSection } from "../settings/SettingsRecurringSection";
 import { SettingsAdminSection } from "../settings/SettingsAdminSection";
 import { CURRENCY_CODES } from "../settings/currencies";
+
+function compareNames(a: { name: string }, b: { name: string }) {
+  return a.name.localeCompare(b.name, undefined, { sensitivity: "base" });
+}
+
+function compareCategories(a: Category, b: Category) {
+  if (a.isIncome !== b.isIncome) return a.isIncome ? -1 : 1;
+  return compareNames(a, b);
+}
 
 export function SettingsPage() {
   const { user } = useAuth();
@@ -66,13 +75,18 @@ export function SettingsPage() {
     load();
   }, [load]);
 
+  const sortedCategories = useMemo(
+    () => [...categories].sort(compareCategories),
+    [categories],
+  );
+
   useEffect(() => {
-    if (categories.length > 0) {
+    if (sortedCategories.length > 0) {
       setRecForm((f) =>
-        f.categoryId ? f : { ...f, categoryId: categories[0].id }
+        f.categoryId ? f : { ...f, categoryId: sortedCategories[0].id }
       );
     }
-  }, [categories]);
+  }, [sortedCategories]);
 
   async function saveDomain() {
     try {
@@ -243,7 +257,7 @@ export function SettingsPage() {
       <SettingsAccountSection />
 
       <SettingsCategoriesSection
-        categories={categories}
+        categories={sortedCategories}
         budgets={budgets}
         setBudgets={setBudgets}
         catName={catName}
@@ -254,7 +268,7 @@ export function SettingsPage() {
       />
 
       <SettingsRecurringSection
-        categories={categories}
+        categories={sortedCategories}
         recurring={recurring}
         currencyCode={currencyCode}
         recForm={recForm}

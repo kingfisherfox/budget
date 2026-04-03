@@ -2,11 +2,9 @@ import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip } from "recharts";
 import type { Expense } from "../api/types";
-import { formatMoney } from "../lib/money";
 
 type Props = {
   expenses: Expense[];
-  currencyCode: string;
 };
 
 const COLORS = [
@@ -43,7 +41,14 @@ function aggregateByExpenseName(items: Expense[]) {
     .sort((a, b) => b.value - a.value);
 }
 
-export function DashboardExpenseList({ expenses, currencyCode }: Props) {
+function formatPlainNumber(value: number) {
+  return new Intl.NumberFormat(undefined, {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(value);
+}
+
+export function DashboardExpenseList({ expenses }: Props) {
   const [drillCategory, setDrillCategory] = useState<string | null>(null);
 
   const grouped = useMemo(() => groupByCategory(expenses), [expenses]);
@@ -61,6 +66,10 @@ export function DashboardExpenseList({ expenses, currencyCode }: Props) {
   }, [drillCategory, grouped, sortedCategories]);
 
   const parentTotal = drillCategory && grouped[drillCategory] ? grouped[drillCategory].total : null;
+  const pieTotal = useMemo(
+    () => pieData.reduce((acc, current) => acc + current.value, 0),
+    [pieData]
+  );
 
   function onPieClick(entry: { name?: string }) {
     if (!entry?.name) return;
@@ -76,19 +85,11 @@ export function DashboardExpenseList({ expenses, currencyCode }: Props) {
           <h2 className="text-xs font-bold uppercase tracking-widest text-slate-400">
             This month
           </h2>
-          {drillCategory ? (
-            <button
-              type="button"
-              onClick={() => setDrillCategory(null)}
-              className="max-w-full text-left text-sm font-bold text-slate-900 transition-colors hover:text-indigo-600"
-            >
-              <span className="font-normal text-slate-500">← </span>
-              {drillCategory}
-              <span className="ml-2 font-normal text-slate-500">· labels in this category · click to show all categories</span>
-            </button>
-          ) : (
-            <p className="text-xs text-slate-500">Tap a category below or a pie slice to see spend by label.</p>
-          )}
+          <p className="min-h-[1.25rem] text-xs text-slate-500">
+            {drillCategory
+              ? "Showing spend by label in the selected category."
+              : "Tap a category below or a pie slice to see spend by label."}
+          </p>
         </div>
         <Link
           to="/expenses"
@@ -104,103 +105,123 @@ export function DashboardExpenseList({ expenses, currencyCode }: Props) {
         <p className="text-sm text-slate-500">No labeled spend in this category.</p>
       ) : (
         <>
-          <div className="h-52 w-full">
-            <ResponsiveContainer width="100%" height="100%">
-              <PieChart>
-                <Pie
-                  data={pieData}
-                  cx="50%"
-                  cy="50%"
-                  innerRadius={56}
-                  outerRadius={82}
-                  paddingAngle={2}
-                  dataKey="value"
-                  nameKey="name"
-                  stroke="none"
-                  onClick={(d) => onPieClick(d as { name?: string })}
-                  className={drillCategory ? "cursor-default" : "cursor-pointer outline-none"}
-                  label={
-                    pieData.length <= 10
-                      ? ({ name, percent }) =>
-                          `${name} ${((percent ?? 0) * 100).toFixed(0)}%`
-                      : false
-                  }
-                  labelLine={pieData.length <= 10}
+          <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_22rem] lg:items-start">
+            <div className="flex flex-col gap-4">
+              <div className="min-h-[3.25rem]">
+                <button
+                  type="button"
+                  onClick={() => setDrillCategory(null)}
+                  className={`text-left text-xs font-bold uppercase tracking-wide transition-colors ${
+                    drillCategory
+                      ? "text-indigo-600 hover:text-indigo-800"
+                      : "pointer-events-none invisible"
+                  }`}
                 >
-                  {pieData.map((_, index) => (
-                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                  ))}
-                </Pie>
-                <Tooltip
-                  formatter={(value) =>
-                    formatMoney(Number(value ?? 0), currencyCode)
-                  }
-                  labelFormatter={(label) => String(label)}
-                  contentStyle={{
-                    borderRadius: 0,
-                    border: "1px solid #e2e8f0",
-                    boxShadow: "0 1px 2px rgba(0,0,0,0.05)",
-                    fontSize: "12px",
-                  }}
-                  itemStyle={{ color: "#0f172a", fontWeight: 600 }}
-                />
-              </PieChart>
-            </ResponsiveContainer>
-          </div>
+                  ← Back
+                </button>
+                <p className="mt-1 truncate text-sm font-bold uppercase tracking-wider text-slate-900">
+                  {drillCategory ?? "Categories"}
+                </p>
+              </div>
 
-          <div className="flex flex-col gap-4">
-            {drillCategory === null
-              ? sortedCategories.map(([categoryName, { total }], index) => (
-                  <button
-                    key={categoryName}
-                    type="button"
-                    onClick={() => setDrillCategory(categoryName)}
-                    className="flex w-full items-center justify-between border-b border-slate-100 pb-3 text-left last:border-0"
-                  >
-                    <div className="flex min-w-0 items-center gap-3">
-                      <div
-                        className="h-3 w-3 shrink-0 rounded-full"
-                        style={{ backgroundColor: COLORS[index % COLORS.length] }}
-                      />
-                      <h3 className="min-w-0 truncate text-sm font-bold uppercase tracking-wider text-slate-900">
-                        {categoryName}
-                      </h3>
-                    </div>
-                    <span className="shrink-0 pl-2 text-sm font-bold tabular-nums text-slate-900">
-                      {formatMoney(total, currencyCode)}
-                    </span>
-                  </button>
-                ))
-              : pieData.map((row, index) => {
-                  const pctOfCategory =
-                    parentTotal && parentTotal > 0
-                      ? ((row.value / parentTotal) * 100).toFixed(0)
-                      : null;
-                  return (
-                    <div
-                      key={row.name}
-                      className="flex items-center justify-between gap-2 border-b border-slate-100 pb-3 last:border-0"
+              {drillCategory === null
+                ? sortedCategories.map(([categoryName, { total }], index) => (
+                    <button
+                      key={categoryName}
+                      type="button"
+                      onClick={() => setDrillCategory(categoryName)}
+                      className="w-full border-b border-slate-100 pb-3 text-left last:border-0"
                     >
-                      <div className="flex min-w-0 flex-1 items-center gap-3">
-                        <div
+                      <span className="flex min-w-0 items-center gap-3">
+                        <span
                           className="h-3 w-3 shrink-0 rounded-full"
                           style={{ backgroundColor: COLORS[index % COLORS.length] }}
                         />
-                        <div className="min-w-0">
-                          <h3 className="truncate text-sm font-bold text-slate-900">{row.name}</h3>
-                          {pctOfCategory !== null ? (
-                            <p className="text-[11px] font-medium uppercase tracking-wide text-slate-500">
-                              {pctOfCategory}% of {drillCategory}
-                            </p>
-                          ) : null}
-                        </div>
-                      </div>
-                      <span className="shrink-0 text-sm font-bold tabular-nums text-slate-900">
-                        {formatMoney(row.value, currencyCode)}
+                        <span className="min-w-0 truncate text-sm font-bold uppercase tracking-wider text-slate-900">
+                          {categoryName}
+                        </span>
+                        <span className="shrink-0 text-sm font-bold tabular-nums text-slate-900">
+                          {formatPlainNumber(total)}
+                        </span>
                       </span>
-                    </div>
-                  );
-                })}
+                    </button>
+                  ))
+                : pieData.map((row, index) => {
+                    const pctOfCategory =
+                      parentTotal && parentTotal > 0
+                        ? ((row.value / parentTotal) * 100).toFixed(0)
+                        : null;
+                    return (
+                      <div
+                        key={row.name}
+                        className="w-full border-b border-slate-100 pb-3 text-left last:border-0"
+                      >
+                        <span className="flex min-w-0 items-center gap-3">
+                          <span
+                            className="h-3 w-3 shrink-0 rounded-full"
+                            style={{ backgroundColor: COLORS[index % COLORS.length] }}
+                          />
+                          <span className="min-w-0 truncate text-sm font-bold text-slate-900">
+                            {row.name}
+                          </span>
+                          <span className="shrink-0 text-sm font-bold tabular-nums text-slate-900">
+                            {formatPlainNumber(row.value)}
+                          </span>
+                          {pctOfCategory !== null ? (
+                            <span className="shrink-0 text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+                              {pctOfCategory}%
+                            </span>
+                          ) : null}
+                        </span>
+                      </div>
+                    );
+                  })}
+            </div>
+
+            <div className="h-72 w-full max-w-[22rem] justify-self-center lg:justify-self-end">
+              <ResponsiveContainer width="100%" height="100%" minHeight={260}>
+                <PieChart margin={{ top: 0, right: 0, bottom: 0, left: 0 }}>
+                  <Pie
+                    data={pieData}
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={0}
+                    outerRadius={120}
+                    paddingAngle={1}
+                    startAngle={90}
+                    endAngle={-270}
+                    dataKey="value"
+                    nameKey="name"
+                    stroke="#ffffff"
+                    strokeWidth={2}
+                    onClick={(d) => onPieClick(d as { name?: string })}
+                    className={drillCategory ? "cursor-default outline-none" : "cursor-pointer outline-none"}
+                    labelLine={false}
+                    label={false}
+                  >
+                    {pieData.map((_, index) => (
+                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                    ))}
+                  </Pie>
+                  <Tooltip
+                    formatter={(value) => formatPlainNumber(Number(value ?? 0))}
+                    labelFormatter={(label) => {
+                      const point = pieData.find((row) => row.name === String(label));
+                      if (!point || pieTotal <= 0) return String(label);
+                      const percent = ((point.value / pieTotal) * 100).toFixed(0);
+                      return `${label} (${percent}%)`;
+                    }}
+                    contentStyle={{
+                      borderRadius: 0,
+                      border: "1px solid #e2e8f0",
+                      boxShadow: "0 1px 2px rgba(0,0,0,0.05)",
+                      fontSize: "12px",
+                    }}
+                    itemStyle={{ color: "#0f172a", fontWeight: 600 }}
+                  />
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
           </div>
         </>
       )}

@@ -60,15 +60,16 @@ export function DashboardPage() {
       </div>
       {err && <p className="text-sm font-medium text-red-600">{err}</p>}
       
-      <DashboardSummary data={dash} currencyCode={currencyCode} />
+      <DashboardSummary data={dash} />
       <DailySpendChart data={dash} currencyCode={currencyCode} />
       <RecurringSection
         items={recurring}
         currencyCode={currencyCode}
-        month={month}
         onLogged={load}
       />
-      <DashboardExpenseList expenses={expenses} currencyCode={currencyCode} />
+      <DashboardExpenseList
+        expenses={expenses.filter(e => !e.category.isIncome)}
+      />
     </div>
   );
 }

@@ -130,35 +130,38 @@ export function WishlistPage() {
           items.map((w) => (
             <li
               key={w.id}
-              className="flex flex-col gap-3 rounded-none border border-slate-200 bg-white p-5 shadow-sm transition-colors hover:border-slate-300 md:flex-row md:items-center md:justify-between"
+              className="flex flex-col gap-2 rounded-none border border-slate-200 bg-white px-2 py-2 shadow-sm transition-colors hover:border-slate-300 sm:px-3 sm:py-2.5"
             >
-              <div className="flex flex-col gap-1">
-                <p className="text-base font-bold text-slate-900">{w.name}</p>
-                <p className="text-sm font-medium text-slate-600">
-                  <span className="uppercase tracking-wider text-slate-500">{w.category.name}</span>
-                  <span className="mx-2 text-slate-300">|</span>
-                  <span className="tabular-nums text-slate-900">{formatMoney(w.amount, currencyCode)}</span>
-                </p>
-                {w.note ? (
-                  <p className="mt-1 text-sm text-slate-500">{w.note}</p>
-                ) : null}
-              </div>
-              <div className="flex shrink-0 gap-2">
+              <div className="flex min-w-0 items-center gap-1.5 sm:gap-2">
+                <div className="flex min-w-0 flex-1 flex-nowrap items-center gap-1.5 overflow-hidden">
+                  <span className="min-w-0 truncate text-sm font-bold text-slate-900">
+                    {w.name}
+                  </span>
+                  <span className="max-w-[32%] shrink truncate whitespace-nowrap text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+                    {w.category.name}
+                  </span>
+                  <span className="ml-auto shrink-0 text-xs font-semibold tabular-nums text-slate-900">
+                    {formatMoney(w.amount, currencyCode)}
+                  </span>
+                </div>
                 <button
                   type="button"
-                  className="h-9 rounded-none border border-slate-200 bg-white px-4 text-xs font-bold uppercase tracking-wider text-slate-700 transition-colors hover:border-slate-400 hover:bg-slate-50"
+                  className="h-8 shrink-0 rounded-none border border-slate-200 bg-white px-2 text-[10px] font-bold uppercase tracking-wide text-slate-700 transition-colors hover:border-indigo-300 hover:bg-indigo-50 sm:h-9 sm:px-2 sm:text-xs"
                   onClick={() => setPurchase(w)}
                 >
-                  Purchased
+                  Buy
                 </button>
                 <button
                   type="button"
-                  className="h-9 rounded-none border border-red-200 bg-white px-4 text-xs font-bold uppercase tracking-wider text-red-600 transition-colors hover:border-red-400 hover:bg-red-50"
+                  className="h-8 shrink-0 rounded-none border border-red-200 bg-white px-2 text-[10px] font-bold uppercase tracking-wide text-red-600 transition-colors hover:border-red-400 hover:bg-red-50 sm:h-9 sm:px-3 sm:text-xs"
                   onClick={() => remove(w.id)}
                 >
-                  Delete
+                  Del
                 </button>
               </div>
+              {w.note ? (
+                <p className="pl-0.5 text-xs text-slate-500 truncate">{w.note}</p>
+              ) : null}
             </li>
           ))
         )}

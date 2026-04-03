@@ -15,7 +15,12 @@ export const appSettingsRouter = Router();
 async function ensureSettings(uid: string) {
   await prisma.appSettings.upsert({
     where: { userId: uid },
-    create: { userId: uid, currencyCode: "THB", timeZone: "UTC", domainName: "" },
+    create: {
+      userId: uid,
+      currencyCode: "THB",
+      timeZone: "UTC",
+      domainName: "",
+    },
     update: {},
   });
 }
@@ -24,7 +29,9 @@ appSettingsRouter.get("/", async (req, res, next) => {
   try {
     const uid = userId(req);
     await ensureSettings(uid);
-    const row = await prisma.appSettings.findUniqueOrThrow({ where: { userId: uid } });
+    const row = await prisma.appSettings.findUniqueOrThrow({
+      where: { userId: uid },
+    });
     res.json(row);
   } catch (e) {
     next(e);
@@ -35,7 +42,9 @@ appSettingsRouter.patch("/", async (req, res, next) => {
   try {
     const parsed = patchSchema.safeParse(req.body);
     if (!parsed.success) {
-      throw new HttpError(400, "Validation failed", { errors: parsed.error.flatten() });
+      throw new HttpError(400, "Validation failed", {
+        errors: parsed.error.flatten(),
+      });
     }
     const uid = userId(req);
     await ensureSettings(uid);

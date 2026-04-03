@@ -52,6 +52,7 @@ One row per user (`userId` primary key).
 | name | String | Display name |
 | color | String? | Optional hex for UI |
 | sortOrder | Int | Display order (lower first) |
+| isIncome | Boolean | Marks category as income; default `false` |
 | createdAt | DateTime | UTC |
 
 ## CategoryBudget
@@ -71,7 +72,7 @@ One monthly budget cap per category (same amount every month). Actual spend for 
 | id | String (cuid) | Primary key |
 | name | String | Short label |
 | categoryId | String | FK → Category |
-| amount | Decimal | Positive spend |
+| amount | Decimal | Positive value; for income categories this is income amount, for non-income categories this is spend |
 | date | Date | Calendar date only (no time); drives month grouping. Created using the user's `timeZone` |
 | note | String? | Optional |
 | recurringExpenseId | String? | If set, this expense is the logged payment for that recurring template in `date`’s month |

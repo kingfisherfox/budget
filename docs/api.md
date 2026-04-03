@@ -38,7 +38,7 @@ Global configuration, editable only by `ADMIN` users.
 
 ## Categories
 
-- `GET /api/categories` → array of `{ id, name, color, sortOrder, createdAt, budget: { monthlyAmount } | null }`
+- `GET /api/categories` → array of `{ id, name, color, sortOrder, isIncome, createdAt, budget: { monthlyAmount } | null }`
 - `POST /api/categories` body `{ name, color?, sortOrder? }` → category (budget null until set)
 - `PATCH /api/categories/:id` body partial `{ name?, color?, sortOrder? }`
 - `DELETE /api/categories/:id` — fails if referenced (409/400) or cascade per implementation (plan: prevent delete if expenses exist)
@@ -49,7 +49,7 @@ Global configuration, editable only by `ADMIN` users.
 
 ## Expenses
 
-- `GET /api/expenses?month=YYYY-MM` — expenses in that month, ordered by `date` desc, then `createdAt` desc. Each item includes `category: { id, name }`, `recurringSubcategoryId` (nullable).
+- `GET /api/expenses?month=YYYY-MM` — expenses in that month, ordered by `date` desc, then `createdAt` desc. Each item includes `category: { id, name, isIncome }`, `recurringSubcategoryId` (nullable).
 - `GET /api/expenses/:id` — single expense with category
 - `POST /api/expenses` body:
   - `categoryId`, `amount`, `date` (ISO date string `YYYY-MM-DD`), `name?`, `note?`
@@ -90,17 +90,22 @@ Global configuration, editable only by `ADMIN` users.
       "categoryId": "",
       "name": "",
       "color": null,
+      "isIncome": false,
       "budget": 0,
       "actual": 0,
       "variancePercent": null
     }
   ],
   "dailySpend": [{ "date": "YYYY-MM-DD", "total": 0 }],
-  "totals": { "budget": 0, "actual": 0 }
+  "totals": { "budget": 0, "actual": 0, "income": 0 }
 }
 ```
 
 - `variancePercent`: `null` if budget is 0; else `((actual - budget) / budget) * 100`.
+- `totals.actual`: sum of non-income category spend for the month.
+- `totals.budget`: sum of non-income category budgets.
+- `totals.income`: sum of category totals where `category.isIncome = true`.
+- `dailySpend`: excludes income-category entries and only plots non-income spend.
 
 ## Month validation
 

@@ -2,27 +2,55 @@ import { useState } from "react";
 import { apiPost } from "../api/client";
 import type { RecurringStatus } from "../api/types";
 import { formatMoney } from "../lib/money";
-import { formatMonthDisplay, todayISODate } from "../lib/month";
+import { todayISODate } from "../lib/month";
 import { useSettings } from "../context/SettingsContext";
 
 type Props = {
   items: RecurringStatus[];
   currencyCode: string;
-  month: string;
   onLogged: () => void;
 };
 
 export function RecurringSection({
   items,
   currencyCode,
-  month,
   onLogged,
 }: Props) {
-  const { timeZone } = useSettings();
   const [showHidden, setShowHidden] = useState(false);
   const [selectedRecurring, setSelectedRecurring] = useState<RecurringStatus | null>(null);
 
   const visible = showHidden ? items : items.filter((i) => !i.completed || i.isCommon);
+  const commonItems = visible.filter((i) => i.isCommon).sort((a, b) => a.name.localeCompare(b.name));
+  const uncommonItems = visible.filter((i) => !i.isCommon).sort((a, b) => a.name.localeCompare(b.name));
+
+  const renderItem = (r: RecurringStatus) => (
+    <button
+      key={r.id}
+      type="button"
+      disabled={r.completed && !r.isCommon}
+      className={`relative flex min-h-16 flex-col items-start justify-center rounded-none border p-3 pt-4 text-left transition-colors disabled:opacity-50 ${r.category.isIncome ? "border-green-200 bg-green-50 hover:border-green-300 hover:bg-green-100 disabled:hover:border-green-200 disabled:hover:bg-green-50" : "border-slate-200 bg-slate-50 hover:border-indigo-300 hover:bg-indigo-50 disabled:hover:border-slate-200 disabled:hover:bg-slate-50"}`}
+      onClick={() => {
+        if (!r.completed || r.isCommon) setSelectedRecurring(r);
+      }}
+    >
+      {r.isCommon && (
+        <span className="absolute -top-2.5 left-3 bg-[#a3e635] px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-white shadow-sm">
+          {r.category.isIncome ? "Income" : "Common"}
+        </span>
+      )}
+      <span className="w-full truncate text-sm font-semibold text-slate-900">
+        {r.name}
+      </span>
+      {r.defaultAmount != null && (
+        <span className="mt-0.5 text-xs font-medium text-slate-500 tabular-nums">
+          {formatMoney(r.defaultAmount, currencyCode)}
+        </span>
+      )}
+      {r.completed && !r.isCommon && (
+        <span className="mt-1 text-xs font-bold uppercase tracking-wider text-emerald-600">Done</span>
+      )}
+    </button>
+  );
 
   return (
     <section className="flex flex-col gap-4 rounded-none border border-slate-200 bg-white p-5 shadow-sm">
@@ -48,37 +76,15 @@ export function RecurringSection({
               : "All recurring items logged for this month."}
           </p>
         ) : (
-          visible.map((r) => (
-            <button
-              key={r.id}
-              type="button"
-              disabled={r.completed && !r.isCommon}
-              className="relative flex min-h-16 flex-col items-start justify-center rounded-none border border-slate-200 bg-slate-50 p-3 pt-4 text-left transition-colors hover:border-indigo-300 hover:bg-indigo-50 disabled:opacity-50 disabled:hover:border-slate-200 disabled:hover:bg-slate-50"
-              onClick={() => {
-                if (!r.completed || r.isCommon) setSelectedRecurring(r);
-              }}
-            >
-              {r.isCommon && (
-                <span className="absolute -top-2.5 left-3 bg-[#a3e635] px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-white shadow-sm">
-                  Common
-                </span>
-              )}
-              <span className="w-full truncate text-sm font-semibold text-slate-900">
-                {r.name}
-              </span>
-              {r.defaultAmount != null && (
-                <span className="mt-0.5 text-xs font-medium text-slate-500 tabular-nums">
-                  {formatMoney(r.defaultAmount, currencyCode)}
-                </span>
-              )}
-              {r.completed && !r.isCommon && (
-                <span className="mt-1 text-xs font-bold uppercase tracking-wider text-emerald-600">Done</span>
-              )}
-            </button>
-          ))
+          <>
+            {commonItems.map(renderItem)}
+            {commonItems.length > 0 && uncommonItems.length > 0 && (
+              <div className="col-span-full my-1 border-t border-slate-200" />
+            )}
+            {uncommonItems.map(renderItem)}
+          </>
         )}
       </div>
-      <p className="text-xs text-slate-400">Month: {formatMonthDisplay(month, timeZone)}</p>
 
       {selectedRecurring && (
         <RecurringConfirmModal
@@ -151,7 +157,13 @@ function RecurringConfirmModal({
     <div className="fixed inset-0 z-20 flex items-end justify-center bg-slate-900/40 p-0 backdrop-blur-sm transition-opacity md:items-center md:p-4">
       <div className="w-full max-w-md rounded-none border border-slate-200 bg-white p-6 shadow-xl">
         <h2 className="text-lg font-bold tracking-tight text-slate-900">
-          {item.isCommon ? "Log common expense" : "Log recurring expense"}
+          {item.category?.isIncome
+            ? item.isCommon
+              ? "Log common income"
+              : "Log recurring income"
+            : item.isCommon
+              ? "Log common expense"
+              : "Log recurring expense"}
         </h2>
         <p className="mt-1 text-sm font-medium text-slate-500">{item.name}</p>
         <div className="mt-6 flex flex-col gap-4">
@@ -200,10 +212,10 @@ function RecurringConfirmModal({
             <button
               type="button"
               disabled={saving}
-              className="h-12 flex-1 rounded-none bg-indigo-600 text-sm font-bold uppercase tracking-wider text-white transition-colors hover:bg-indigo-700 active:bg-indigo-800 disabled:opacity-50"
+              className={`h-12 flex-1 rounded-none text-sm font-bold uppercase tracking-wider text-white transition-colors disabled:opacity-50 ${item.category?.isIncome ? "bg-green-600 hover:bg-green-700 active:bg-green-800" : "bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800"}`}
               onClick={() => void confirm()}
             >
-              Log Expense
+              {item.category?.isIncome ? "Log Income" : "Log Expense"}
             </button>
           </div>
         </div>

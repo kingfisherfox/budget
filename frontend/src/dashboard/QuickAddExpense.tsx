@@ -84,20 +84,22 @@ export function QuickAddExpense({ categories, onAdded }: Props) {
             <div className="flex flex-col gap-2">
               <p className="text-xs font-medium uppercase tracking-wider text-slate-500">Category</p>
               <div className="grid grid-cols-2 gap-2">
-                {categories.map((c) => (
+                {categories.filter(c => !c.isIncome).map((c) => {
+                  const isIncome = c.isIncome;
+                  return (
                   <button
                     key={c.id}
                     type="button"
                     className={`h-10 rounded-none border text-xs font-bold uppercase tracking-wider transition-colors ${
                       categoryId === c.id
-                        ? "border-indigo-600 bg-indigo-600 text-white"
-                        : "border-slate-200 bg-slate-50 text-slate-700 hover:border-indigo-300 hover:bg-indigo-50"
+                        ? (isIncome ? "border-green-600 bg-green-600 text-white" : "border-indigo-600 bg-indigo-600 text-white")
+                        : (isIncome ? "border-slate-200 bg-slate-50 text-green-700 hover:border-green-300 hover:bg-green-50" : "border-slate-200 bg-slate-50 text-slate-700 hover:border-indigo-300 hover:bg-indigo-50")
                     }`}
                     onClick={() => setCategoryId(c.id)}
                   >
                     {c.name}
                   </button>
-                ))}
+                )})}
               </div>
             </div>
             <label className="flex flex-col gap-1 text-sm font-medium text-slate-700">

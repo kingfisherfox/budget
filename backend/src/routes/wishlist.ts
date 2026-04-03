@@ -27,7 +27,7 @@ export const wishlistRouter = Router();
 function mapItem(
   w: NonNullable<Awaited<ReturnType<typeof prisma.wishlistItem.findFirst>>> & {
     category: { id: string; name: string };
-  }
+  },
 ) {
   return {
     id: w.id,
@@ -59,7 +59,9 @@ wishlistRouter.post("/", async (req, res, next) => {
     const uid = userId(req);
     const parsed = createSchema.safeParse(req.body);
     if (!parsed.success) {
-      throw new HttpError(400, "Validation failed", { errors: parsed.error.flatten() });
+      throw new HttpError(400, "Validation failed", {
+        errors: parsed.error.flatten(),
+      });
     }
     await prisma.category.findFirstOrThrow({
       where: { id: parsed.data.categoryId, userId: uid },
@@ -84,7 +86,9 @@ wishlistRouter.patch("/:id", async (req, res, next) => {
     const uid = userId(req);
     const parsed = patchSchema.safeParse(req.body);
     if (!parsed.success) {
-      throw new HttpError(400, "Validation failed", { errors: parsed.error.flatten() });
+      throw new HttpError(400, "Validation failed", {
+        errors: parsed.error.flatten(),
+      });
     }
     const existing = await prisma.wishlistItem.findFirst({
       where: { id: req.params.id, category: { userId: uid } },
@@ -130,14 +134,18 @@ wishlistRouter.post("/:id/purchase", async (req, res, next) => {
     const uid = userId(req);
     const parsed = purchaseSchema.safeParse(req.body);
     if (!parsed.success) {
-      throw new HttpError(400, "Validation failed", { errors: parsed.error.flatten() });
+      throw new HttpError(400, "Validation failed", {
+        errors: parsed.error.flatten(),
+      });
     }
     const item = await prisma.wishlistItem.findFirst({
       where: { id: req.params.id, category: { userId: uid } },
     });
     if (!item) throw new HttpError(404, "Wishlist item not found");
 
-    const settings = await prisma.appSettings.findUnique({ where: { userId: uid } });
+    const settings = await prisma.appSettings.findUnique({
+      where: { userId: uid },
+    });
     const timeZone = settings?.timeZone || "UTC";
     const dateStr = parsed.data.date ?? todayISODate(timeZone);
     if (!isValidISODate(dateStr)) {
